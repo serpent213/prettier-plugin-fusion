@@ -2,16 +2,14 @@
 # "Registration" element based on Fusion.Form
 #
 prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {
-
     renderer = Neos.Fusion.Form:Runtime.RuntimeForm {
-        namespace = "neos-demo-registration"
+        namespace = 'neos-demo-registration'
         attributes {
             id = ${'form-' + node.aggregateId}
             action = ${'#' + this.id}
         }
 
         form.method = 'POST'
-
         process {
             content = afx`
                 <fieldset class="space-y-6 mb-8 max-w-[300px] [&_label]:sr-only">
@@ -24,7 +22,6 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
                     </Neos.Fusion.Form:FieldContainer>
                 </fieldset>
             `
-
             schema {
                 username = ${Form.Schema.string().isRequired().validator('Neos\Demo\Form\Runtime\Validation\Validator\UsernameInUseValidator')}
                 password = ${Form.Schema.string().isRequired()}
@@ -32,18 +29,16 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
         }
 
         action {
-
-
-        createBackendUser {
+            createBackendUser {
                 type = 'Neos.Demo.Form.Runtime:CreateUser'
                 options {
-                    username = ${data.username}
-                    password = ${data.password}
                     // you can configure an array of Backend Roles to be added to this user
-                    roles = ${['Neos.Neos:Editor']}
                     // this is basically for security reasons if someone
                     // forgets to remove this functionality
                     // you can configure a valid DateTime constructor format here
+                    username = ${data.username}
+                    password = ${data.password}
+                    roles = ${['Neos.Neos:Editor']}
                     expiry = '+1 week'
                 }
                 @position = 'start'

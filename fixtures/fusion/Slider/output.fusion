@@ -1,7 +1,7 @@
 prototype(Neos.Demo:Presentation.Slider) < prototype(Neos.Fusion:Component) {
     // This is used for the living styleguide (Monocle)
     // Read more about this in the README.md
-    @styleguide.props.items  = Neos.Fusion:Map {
+    @styleguide.props.items = Neos.Fusion:Map {
         items = ${Array.range(1, 10)}
         itemRenderer = afx`
             <img class="w-full" src={"https://picsum.photos/800/400?random=" + item} alt="placeholder image" />
@@ -12,14 +12,12 @@ prototype(Neos.Demo:Presentation.Slider) < prototype(Neos.Fusion:Component) {
     sliderIsDecoration = false
     class = null
     slideItemClass = 'flex flex-col items-center justify-center'
-
     options = Neos.Fusion:DataStructure {
         # The gap between slides. The CSS format is acceptable, such as 1em.
         gap = 12
     }
 
     attributes = Neos.Fusion:DataStructure
-
     i18n = Neos.Fusion:Map {
         items = ${['prev', 'next', 'first', 'last', 'slideX', 'pageX', 'play', 'pause', 'carousel', 'select', 'slide', 'slideLabel', 'playVideo']}
         keyRenderer = ${item}
