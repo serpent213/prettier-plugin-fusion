@@ -12,32 +12,29 @@ test: build
 
 # Format fixtures directory with plugin
 format-fixtures: build
-    prettier --write ./fixtures
+    prettier --plugin=dist/index.js --write ./fixtures --ignore-path=.prettierignore
 
 # Format REPL files (check only)
-format-repl: build
-    prettier --plugin=dist/index.js *.repl.js --ignore-path=.prettierignore
+# format-repl: build
+#     prettier --plugin=dist/index.js *.repl.js --ignore-path=.prettierignore
 
 # Format REPL files (write changes)
-format-repl-write: build
-    prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
+# format-repl-write: build
+#     prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
 
 # Format all source files (TypeScript/JavaScript)
 format-src:
-    prettier --write "src/**/*.{ts,js,json}"
+    prettier --write "{src,__tests__}/**/*.{ts,js,json}" "*.{json,md}"
 
 # Format all files in project
-format: build
-    prettier --write "{src,__tests__}/**/*.{ts,js,json}"
-    # prettier --write ./fixtures
-    prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
+format: format-src
 
 # Check formatting without making changes
 check:
-    prettier --check "src/**/*.{ts,js,json}"
+    prettier --check "{src,__tests__}/**/*.{ts,js,json}" "*.{json,md}"
 
 # Check all formatting (including fixtures and REPL)
 check-all: build
-    prettier --check "src/**/*.{ts,js,json}"
-    prettier --check ./fixtures
-    prettier --plugin=dist/index.js --check *.repl.js --ignore-path=.prettierignore
+    prettier --check "{src,__tests__}/**/*.{ts,js,json}" "*.md"
+    prettier --plugin=dist/index.js --check ./fixtures --ignore-path=.prettierignore
+    # prettier --plugin=dist/index.js --check *.repl.js --ignore-path=.prettierignore

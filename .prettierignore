@@ -1,6 +1,3 @@
 node_modules
 dist
-fixtures/**/input.js
-fixtures/**/input.ts
-fixtures/**/input.tsx
-fixtures/**/input.jsx
+fixtures/**/input.fusion

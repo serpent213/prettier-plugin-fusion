@@ -11,11 +11,29 @@ embedded AFX templates, and inline EEL expressions are formatted consistently.
 
 ## Usage
 
-```
-pnpm add -D prettier-plugin-fusion
+Add to your `package.json`:
 
+```json
+{
+    "devDependencies": {
+        "prettier-plugin-fusion": "github:serpent213/prettier-plugin-fusion#master"
+    }
+}
+```
+
+...and your `.prettierrc`:
+
+```json
+{
+    "plugins": ["prettier-plugin-fusion"]
+}
+```
+
+Then:
+
+```sh
 # Format Fusion files in-place
-prettier --plugin=prettier-plugin-fusion "src/**/*.fusion" --write
+prettier --write "src/**/*.fusion"
 ```
 
 The plugin registers a `fusion` parser and handles `.fusion` files automatically. It ships a couple of parser
