@@ -38,3 +38,7 @@ check-all: build
     prettier --check "{src,__tests__}/**/*.{ts,js,json}" "*.md"
     prettier --plugin=dist/index.js --check ./fixtures --ignore-path=.prettierignore
     # prettier --plugin=dist/index.js --check *.repl.js --ignore-path=.prettierignore
+
+# Clean build artifacts
+clean:
+    rm -rf dist

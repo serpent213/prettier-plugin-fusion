@@ -23,7 +23,10 @@
   languages.typescript.enable = true;
 
   # https://devenv.sh/git-hooks/
-  git-hooks.hooks.prettier.enable = true;
+  git-hooks.hooks = {
+    prettier.enable = true;
+    prettier.files = "\\.(js|ts|json)$";
+  };
 
   # See full reference at https://devenv.sh/reference/options/
 }
