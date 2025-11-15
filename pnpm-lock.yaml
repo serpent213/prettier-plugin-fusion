@@ -6,6 +6,10 @@ settings:
 
 importers:
   .:
+    dependencies:
+      ts-fusion-parser:
+        specifier: ^0.2.2
+        version: 0.2.2
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^25.0.7
@@ -780,6 +784,10 @@ packages:
       { integrity: sha512-KYad6Vy5VDWV4GH3fjpseMQ/XU2BhIYP7Vzd0LG44qRWm/Yt2WCOTicFdvmgo6gWaqooMQCawTtILVQJupKu7A== }
     engines: { node: '>=14.0.0' }
 
+  ts-fusion-parser@0.2.2:
+    resolution:
+      { integrity: sha512-dB7XUUnk4OP5eixa8nhRkNJSCVO8cm4RnDD/zFgLvTnz4/eucUjtxdEug92GzFcoOv+L9/f5I9LI7RC/h0wKjg== }
+
   tslib@2.8.1:
     resolution:
       { integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w== }
@@ -1399,6 +1407,8 @@ snapshots:
   tinypool@0.8.4: {}
 
   tinyspy@2.2.1: {}
+
+  ts-fusion-parser@0.2.2: {}
 
   tslib@2.8.1: {}
 

@@ -1,71 +1,144 @@
-import type { SupportLanguage, Parser, Printer, SupportOption, Options, Doc } from 'prettier'
-import type { AstPath, ParserOptions } from 'prettier'
-import * as prettierPluginBabel from 'prettier/plugins/babel'
-import * as prettierPluginTypeScript from 'prettier/plugins/typescript'
-import * as prettierPluginEstree from 'prettier/plugins/estree'
+import type { SupportLanguage, Parser, Printer, SupportOption, Options, ParserOptions } from 'prettier'
+import { ObjectTreeParser } from 'ts-fusion-parser'
+import type { FusionParserOptions } from 'ts-fusion-parser'
+import type { AfxParserOptions } from 'ts-fusion-parser/out/dsl/afx/parser'
+import type { EelParserOptions } from 'ts-fusion-parser/out/dsl/eel/parser'
 
-type TCallbackPrint = (path: AstPath) => Doc
+const FUSION_AST_FORMAT = 'fusion-ast'
+const OPTION_CATEGORY = 'Fusion parser'
+
+type NodeWithPosition = {
+  position?: {
+    begin?: number
+    end?: number
+  }
+}
+
+function buildEelParserOptions(options: ParserOptions): EelParserOptions {
+  return {
+    allowIncompleteObjectPaths: options.fusionAllowIncompleteEelPaths ?? true,
+  }
+}
+
+function buildAfxParserOptions(options: ParserOptions): AfxParserOptions {
+  return {
+    allowUnclosedTags: options.fusionAllowUnclosedAfxTags ?? true,
+    eelParserOptions: buildEelParserOptions(options),
+  }
+}
+
+function buildFusionParserOptions(options: ParserOptions): FusionParserOptions {
+  return {
+    ignoreErrors: options.fusionIgnoreParserErrors ?? true,
+    allowIncompleteObjectStatements: options.fusionAllowIncompleteObjectStatements ?? true,
+    afxParserOptions: buildAfxParserOptions(options),
+    eelParserOptions: buildEelParserOptions(options),
+  }
+}
+
+function getPosition(node: unknown): { begin: number; end: number } {
+  if (isNodeWithPosition(node)) {
+    const begin = typeof node.position?.begin === 'number' ? node.position.begin : 0
+    const end = typeof node.position?.end === 'number' ? node.position.end : begin
+    return { begin, end }
+  }
+  return { begin: 0, end: 0 }
+}
+
+function isNodeWithPosition(node: unknown): node is NodeWithPosition {
+  return typeof node === 'object' && node !== null && 'position' in node
+}
 
 // https://prettier.io/docs/en/plugins#languages
 export const languages: Partial<SupportLanguage>[] = [
   {
-    name: 'JavaScript/TypeScript/JSX',
-    parsers: ['babel', 'typescript'],
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
-    vscodeLanguageIds: ['javascript'],
+    name: 'Neos Fusion',
+    parsers: ['fusion'],
+    extensions: ['.fusion'],
+    vscodeLanguageIds: ['fusion'],
   },
 ]
 
 // https://prettier.io/docs/en/plugins#parsers
-export const parsers: Record<'babel' | 'typescript', Parser> = {
-  babel: {
-    ...prettierPluginBabel.parsers.babel,
-  },
-  typescript: {
-    ...prettierPluginTypeScript.parsers.typescript,
+export const parsers: Record<'fusion', Parser> = {
+  fusion: {
+    parse(text: string, options: ParserOptions) {
+      const contextPath = options.fusionContextPath || options.filepath
+      const fusionFile = ObjectTreeParser.parse(text, contextPath, buildFusionParserOptions(options))
+
+      return fusionFile
+    },
+    astFormat: FUSION_AST_FORMAT,
+    locStart(node) {
+      return getPosition(node).begin
+    },
+    locEnd(node) {
+      return getPosition(node).end
+    },
   },
 }
 
 // https://prettier.io/docs/en/plugins#printers
-export const printers: Record<'estree', Printer> = {
-  estree: {
-    ...prettierPluginEstree.printers.estree,
-    print: (path, options, print) => {
-      let node = path.getNode() // AST Node.
-      /**
-       * @Notes
-       * This recursive print `prettierPluginEstree.printers.estree.print()` must be called first before Doc manipulation.
-       * If not, will break the print chain (e.g leading/trailing comments).
-       */
-      let printed = prettierPluginEstree.printers.estree.print(path, options, print)
-
-      /** @Notes Example Doc manipulation */
-      // Why `node` type is `any`? Because the type is not exported from the plugin.
-      function printJSXElement(path: AstPath, options: ParserOptions, print: TCallbackPrint, node: any) {
-        return printed
-      }
-
-      if (node.type === 'JSXElement') {
-        let customPrinted = printJSXElement(path, options, print, node)
-        return printed // Change this return value to `customPrinted` to apply the custom print
-      }
-
-      return printed
+export const printers: Record<typeof FUSION_AST_FORMAT, Printer> = {
+  [FUSION_AST_FORMAT]: {
+    print(_path, options) {
+      return options.originalText ?? ''
     },
   },
 }
 
 // https://prettier.io/docs/en/plugins.html#options
-export const options: Record<'optionName', SupportOption> = {
-  optionName: {
+export const options: Record<
+  | 'fusionContextPath'
+  | 'fusionIgnoreParserErrors'
+  | 'fusionAllowIncompleteObjectStatements'
+  | 'fusionAllowIncompleteEelPaths'
+  | 'fusionAllowUnclosedAfxTags',
+  SupportOption
+> = {
+  fusionContextPath: {
+    type: 'string',
+    category: OPTION_CATEGORY,
+    default: undefined,
+    description: 'Overrides the context path that is passed to ts-fusion-parser (falls back to Prettier filepath).',
+  },
+  fusionIgnoreParserErrors: {
     type: 'boolean',
-    category: 'Global',
+    category: OPTION_CATEGORY,
     default: true,
-    description: 'Extend the option to include the default prettier plugin options',
+    description: 'Forwarded to ts-fusion-parser ignoreErrors option to keep formatting resilient to syntax errors.',
+  },
+  fusionAllowIncompleteObjectStatements: {
+    type: 'boolean',
+    category: OPTION_CATEGORY,
+    default: true,
+    description: 'Allows incomplete Fusion object statements while typing.',
+  },
+  fusionAllowIncompleteEelPaths: {
+    type: 'boolean',
+    category: OPTION_CATEGORY,
+    default: true,
+    description: 'Allows incomplete EEL object paths which helps when formatting unfinished expressions.',
+  },
+  fusionAllowUnclosedAfxTags: {
+    type: 'boolean',
+    category: OPTION_CATEGORY,
+    default: true,
+    description: 'Toggles the AFX parser option that automatically closes tags.',
   },
 }
 
 // https://prettier.io/docs/en/plugins#defaultoptions
 export const defaultOptions: Options = {
   tabWidth: 4,
+}
+
+declare module 'prettier' {
+  interface ParserOptions {
+    fusionContextPath?: string
+    fusionIgnoreParserErrors?: boolean
+    fusionAllowIncompleteObjectStatements?: boolean
+    fusionAllowIncompleteEelPaths?: boolean
+    fusionAllowUnclosedAfxTags?: boolean
+  }
 }

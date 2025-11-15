@@ -8,7 +8,7 @@ build:
 
 # Run tests
 test: build
-    vitest --reporter=verbose
+    vitest run --reporter=verbose
 
 # Format fixtures directory with plugin
 format-fixtures: build
@@ -29,7 +29,7 @@ format-src:
 # Format all files in project
 format: build
     prettier --write "src/**/*.{ts,js,json}"
-    prettier --write ./fixtures
+    # prettier --write ./fixtures
     prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
 
 # Check formatting without making changes

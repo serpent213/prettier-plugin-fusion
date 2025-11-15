@@ -9,7 +9,13 @@ const config: RollupOptions = {
     format: 'esm',
     sourcemap: true,
   },
-  external: ['prettier', 'prettier/plugins/babel', 'prettier/plugins/typescript', 'prettier/plugins/estree'],
+  external: [
+    'prettier',
+    'prettier/plugins/babel',
+    'prettier/plugins/typescript',
+    'prettier/plugins/estree',
+    'ts-fusion-parser',
+  ],
   plugins: [commonjs(), typescript()],
 }
 
