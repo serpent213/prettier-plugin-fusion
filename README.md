@@ -1,6 +1,8 @@
 # Prettier plugin for Neos Fusion/AFX files
 
-This repository bootstraps a Prettier plugin that understands Neos Fusion/AFX syntax through the
+_ALPHA SOFTWARE – HANDLE WITH CARE!_
+
+This is a Prettier plugin that understands Neos Fusion/AFX syntax through the
 [`ts-fusion-parser`](https://jsr.io/@sjs/ts-fusion-parser). The parser is production proven (it powers the
 Neos Fusion VS Code extension) and can parse Fusion code, embedded AFX markup, and inline EEL expressions.
 

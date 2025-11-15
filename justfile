@@ -28,7 +28,7 @@ format-src:
 
 # Format all files in project
 format: build
-    prettier --write "src/**/*.{ts,js,json}"
+    prettier --write "{src,__tests__}/**/*.{ts,js,json}"
     # prettier --write ./fixtures
     prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
 

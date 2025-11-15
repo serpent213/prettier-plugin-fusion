@@ -60,6 +60,41 @@ exports[`Fusion > Card 1`] = `
 "
 `;
 
+exports[`Fusion > IncludesAndCopies 1`] = `
+"prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
+    @cache.mode = 'uncached'
+    renderer = Neos.Fusion:Case {
+        primary {
+            condition = \${q(node).is('[instanceof Vendor.Site:Document.Article]')}
+            renderer = afx\`
+                <div class="teaser" @if={props.items}>
+                  <Neos.Fusion:Loop items={props.items}>
+                <li>{item}</li>
+                  </Neos.Fusion:Loop>
+                </div>
+            \`
+        }
+        fallback {
+            renderer < Neos.Fusion:Component
+        }
+    }
+
+    @process.trim = Neos.Fusion:Trim {
+        value = \${String.trim(value)}
+    }
+    @process.uppercase = Vendor.Site:Process.Uppercase {}
+}
+
+Vendor.Site:Data.Feed {
+    @cache.entryIdentifier = 'feed-cache'
+    @apply.props = \${props}
+    headline = 'Latest News'
+    items < prototype(Vendor.Site:Data.ItemCollection)
+    teaserVariant = ~
+}
+"
+`;
+
 exports[`Fusion > Registration 1`] = `
 "##
 # "Registration" element based on Fusion.Form

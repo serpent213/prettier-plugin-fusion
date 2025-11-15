@@ -1,0 +1,25 @@
+prototype(Vendor.Site:Example) < prototype(Neos.Neos:ContentComponent) {
+    content = null
+    @if.hasContent = ${this.content}
+
+    renderer =
+    Neos.Fusion:Case {
+        wrapped {
+            condition = ${!context.inContainer}
+            renderer = afx`
+                <section class="content-shell content-surface content-padded content-prose">
+                    <div class="content-inner">
+                        {props.content}
+                    </div>
+                </section>
+            `
+        }
+
+        default {
+            condition = true
+            renderer = afx`
+                <div>{props.content}</div>
+            `
+        }
+    }
+}
