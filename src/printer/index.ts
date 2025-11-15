@@ -1,356 +1,356 @@
-import type { AstPath, Doc, ParserOptions } from 'prettier'
-import type { FusionFile } from 'ts-fusion-parser/out/fusion/nodes/FusionFile'
-import type { StatementList } from 'ts-fusion-parser/out/fusion/nodes/StatementList'
-import type { ObjectStatement } from 'ts-fusion-parser/out/fusion/nodes/ObjectStatement'
-import type { Block } from 'ts-fusion-parser/out/fusion/nodes/Block'
-import type { AbstractOperation } from 'ts-fusion-parser/out/fusion/nodes/AbstractOperation'
-import type { ValueAssignment } from 'ts-fusion-parser/out/fusion/nodes/ValueAssignment'
-import type { ValueCopy } from 'ts-fusion-parser/out/fusion/nodes/ValueCopy'
-import type { ValueUnset } from 'ts-fusion-parser/out/fusion/nodes/ValueUnset'
-import type { AbstractPathValue } from 'ts-fusion-parser/out/fusion/nodes/AbstractPathValue'
-import type { DslExpressionValue } from 'ts-fusion-parser/out/fusion/nodes/DslExpressionValue'
-import type { EelExpressionValue } from 'ts-fusion-parser/out/fusion/nodes/EelExpressionValue'
-import type { ObjectPath } from 'ts-fusion-parser/out/fusion/nodes/ObjectPath'
-import type { Comment } from 'ts-fusion-parser/out/common/Comment'
-import type { AssignedObjectPath } from 'ts-fusion-parser/out/fusion/nodes/AssignedObjectPath'
-import { concat, group, hardline, indent, join } from './docBuilders'
+import type { AstPath, Doc, ParserOptions } from "prettier"
+import type { FusionFile } from "ts-fusion-parser/out/fusion/nodes/FusionFile"
+import type { StatementList } from "ts-fusion-parser/out/fusion/nodes/StatementList"
+import type { ObjectStatement } from "ts-fusion-parser/out/fusion/nodes/ObjectStatement"
+import type { Block } from "ts-fusion-parser/out/fusion/nodes/Block"
+import type { AbstractOperation } from "ts-fusion-parser/out/fusion/nodes/AbstractOperation"
+import type { ValueAssignment } from "ts-fusion-parser/out/fusion/nodes/ValueAssignment"
+import type { ValueCopy } from "ts-fusion-parser/out/fusion/nodes/ValueCopy"
+import type { ValueUnset } from "ts-fusion-parser/out/fusion/nodes/ValueUnset"
+import type { AbstractPathValue } from "ts-fusion-parser/out/fusion/nodes/AbstractPathValue"
+import type { DslExpressionValue } from "ts-fusion-parser/out/fusion/nodes/DslExpressionValue"
+import type { EelExpressionValue } from "ts-fusion-parser/out/fusion/nodes/EelExpressionValue"
+import type { ObjectPath } from "ts-fusion-parser/out/fusion/nodes/ObjectPath"
+import type { Comment } from "ts-fusion-parser/out/common/Comment"
+import type { AssignedObjectPath } from "ts-fusion-parser/out/fusion/nodes/AssignedObjectPath"
+import { concat, group, hardline, indent, join } from "./docBuilders"
 
 type FusionPrinterContext = {
-    sourceText: string
-    lineWidth: number
-    embedEelParser: boolean
+  sourceText: string
+  lineWidth: number
+  embedEelParser: boolean
 }
 
 type NodeWithPosition = { position?: { begin?: number; end?: number } }
 
 export function printFusionAst(path: AstPath, options: ParserOptions): Doc {
-    const node = path.getValue()
-    if (!node) {
-        return ''
-    }
+  const node = path.getValue()
+  if (!node) {
+    return ""
+  }
 
-    const context = createContext(options)
+  const context = createContext(options)
 
-    if (isFusionFile(node)) {
-        const printed = printStatementList(node.statementList, context)
-        return printed ? concat([printed, hardline]) : ''
-    }
+  if (isFusionFile(node)) {
+    const printed = printStatementList(node.statementList, context)
+    return printed ? concat([printed, hardline]) : ""
+  }
 
-    if (isStatementList(node)) {
-        return printStatementList(node, context)
-    }
+  if (isStatementList(node)) {
+    return printStatementList(node, context)
+  }
 
-    return ''
+  return ""
 }
 
 function createContext(options: ParserOptions): FusionPrinterContext {
-    const source = typeof options.originalText === 'string' ? options.originalText : ''
-    const lineWidth =
-        typeof options.fusionLineWidth === 'number'
-            ? options.fusionLineWidth
-            : typeof options.printWidth === 'number'
-              ? options.printWidth
-              : 80
-    return {
-        sourceText: source,
-        lineWidth,
-        embedEelParser: options.fusionEmbedEelParser ?? false,
-    }
+  const source = typeof options.originalText === "string" ? options.originalText : ""
+  const lineWidth =
+    typeof options.fusionLineWidth === "number"
+      ? options.fusionLineWidth
+      : typeof options.printWidth === "number"
+        ? options.printWidth
+        : 80
+  return {
+    sourceText: source,
+    lineWidth,
+    embedEelParser: options.fusionEmbedEelParser ?? false
+  }
 }
 
 function printStatementList(list: StatementList | undefined, context: FusionPrinterContext): Doc {
-    if (!list) {
-        return ''
+  if (!list) {
+    return ""
+  }
+
+  const parts: Doc[] = []
+  const comments = list.comments ?? []
+
+  if (comments.length > 0) {
+    parts.push(printComments(comments))
+    if (list.statements.length > 0) {
+      parts.push(hardline)
     }
+  }
 
-    const parts: Doc[] = []
-    const comments = list.comments ?? []
+  for (let i = 0; i < list.statements.length; i += 1) {
+    const statement = list.statements[i]
+    parts.push(printStatement(statement, context))
 
-    if (comments.length > 0) {
-        parts.push(printComments(comments))
-        if (list.statements.length > 0) {
-            parts.push(hardline)
-        }
+    if (i < list.statements.length - 1) {
+      parts.push(hardline)
+      if (hasOriginalBlankLine(statement, list.statements[i + 1], context)) {
+        parts.push(hardline)
+      }
     }
+  }
 
-    for (let i = 0; i < list.statements.length; i += 1) {
-        const statement = list.statements[i]
-        parts.push(printStatement(statement, context))
-
-        if (i < list.statements.length - 1) {
-            parts.push(hardline)
-            if (hasOriginalBlankLine(statement, list.statements[i + 1], context)) {
-                parts.push(hardline)
-            }
-        }
-    }
-
-    return parts.length > 0 ? concat(parts) : ''
+  return parts.length > 0 ? concat(parts) : ""
 }
 
 function printStatement(statement: unknown, context: FusionPrinterContext): Doc {
-    if (isObjectStatement(statement)) {
-        return printObjectStatement(statement, context)
-    }
+  if (isObjectStatement(statement)) {
+    return printObjectStatement(statement, context)
+  }
 
-    if (isIncludeStatement(statement)) {
-        return concat(['include: ', statement.filePattern])
-    }
+  if (isIncludeStatement(statement)) {
+    return concat(["include: ", statement.filePattern])
+  }
 
-    return getSourceForNode(statement, context) ?? ''
+  return getSourceForNode(statement, context) ?? ""
 }
 
 function printObjectStatement(statement: ObjectStatement, context: FusionPrinterContext): Doc {
-    const docs: Doc[] = []
-    const path = formatObjectPath(statement.path)
+  const docs: Doc[] = []
+  const path = formatObjectPath(statement.path)
 
-    if (path) {
-        docs.push(path)
+  if (path) {
+    docs.push(path)
+  }
+
+  if (statement.operation) {
+    docs.push(printOperation(statement.operation, context))
+  }
+
+  if (statement.block) {
+    const blockDoc = printBlock(statement.block, context)
+    if (blockDoc) {
+      if (docs.length > 0) {
+        docs.push(" ")
+      }
+      docs.push(blockDoc)
     }
+  }
 
-    if (statement.operation) {
-        docs.push(printOperation(statement.operation, context))
-    }
-
-    if (statement.block) {
-        const blockDoc = printBlock(statement.block, context)
-        if (blockDoc) {
-            if (docs.length > 0) {
-                docs.push(' ')
-            }
-            docs.push(blockDoc)
-        }
-    }
-
-    return docs.length > 0 ? group(concat(docs)) : ''
+  return docs.length > 0 ? group(concat(docs)) : ""
 }
 
 function printOperation(operation: AbstractOperation, context: FusionPrinterContext): Doc {
-    if (isValueAssignment(operation)) {
-        return concat([' = ', formatPathValue(operation.pathValue, context)])
-    }
+  if (isValueAssignment(operation)) {
+    return concat([" = ", formatPathValue(operation.pathValue, context)])
+  }
 
-    if (isValueCopy(operation)) {
-        return concat([' < ', formatAssignedObjectPath(operation.assignedObjectPath)])
-    }
+  if (isValueCopy(operation)) {
+    return concat([" < ", formatAssignedObjectPath(operation.assignedObjectPath)])
+  }
 
-    if (isValueUnset(operation)) {
-        return ' = ~'
-    }
+  if (isValueUnset(operation)) {
+    return " = ~"
+  }
 
-    return ''
+  return ""
 }
 
 function printBlock(block: Block, context: FusionPrinterContext): Doc {
-    const hasContent =
-        (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
+  const hasContent =
+    (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
 
-    if (!hasContent) {
-        return '{}'
-    }
+  if (!hasContent) {
+    return "{}"
+  }
 
-    const inner = printStatementList(block.statementList, context)
-    return group(concat(['{', indent(concat([hardline, inner])), hardline, '}']))
+  const inner = printStatementList(block.statementList, context)
+  return group(concat(["{", indent(concat([hardline, inner])), hardline, "}"]))
 }
 
 function formatObjectPath(path: ObjectPath | undefined): string {
-    if (!path || !Array.isArray(path.segments)) {
-        return ''
+  if (!path || !Array.isArray(path.segments)) {
+    return ""
+  }
+
+  const segments = path.segments.map((segment) => {
+    if (!segment) {
+      return ""
     }
 
-    const segments = path.segments.map((segment) => {
-        if (!segment) {
-            return ''
-        }
+    if (segment.constructor?.name === "PrototypePathSegment") {
+      return `prototype(${segment.identifier})`
+    }
 
-        if (segment.constructor?.name === 'PrototypePathSegment') {
-            return `prototype(${segment.identifier})`
-        }
+    if (segment.constructor?.name === "MetaPathSegment") {
+      return `@${segment.identifier}`
+    }
 
-        if (segment.constructor?.name === 'MetaPathSegment') {
-            return `@${segment.identifier}`
-        }
+    return segment.identifier
+  })
 
-        return segment.identifier
-    })
-
-    return segments.filter(Boolean).join('.')
+  return segments.filter(Boolean).join(".")
 }
 
 function formatPathValue(pathValue: AbstractPathValue<unknown>, context: FusionPrinterContext): Doc {
-    const ctorName = pathValue?.constructor?.name
+  const ctorName = pathValue?.constructor?.name
 
-    switch (ctorName) {
-        case 'StringValue':
-        case 'CharValue':
-            return quoteString(String(pathValue.value ?? ''))
-        case 'IntValue':
-        case 'FloatValue':
-        case 'SimpleValue':
-            return String(pathValue.value ?? '')
-        case 'BoolValue':
-            return pathValue.value ? 'true' : 'false'
-        case 'NullValue':
-            return 'null'
-        case 'FusionObjectValue':
-            return String(pathValue.value ?? '')
-        case 'DslExpressionValue':
-            return formatDslExpression(pathValue as DslExpressionValue, context)
-        case 'EelExpressionValue':
-            return formatEelExpression(pathValue as EelExpressionValue, context)
-        default:
-            return String(pathValue?.value ?? '')
-    }
+  switch (ctorName) {
+    case "StringValue":
+    case "CharValue":
+      return quoteString(String(pathValue.value ?? ""))
+    case "IntValue":
+    case "FloatValue":
+    case "SimpleValue":
+      return String(pathValue.value ?? "")
+    case "BoolValue":
+      return pathValue.value ? "true" : "false"
+    case "NullValue":
+      return "null"
+    case "FusionObjectValue":
+      return String(pathValue.value ?? "")
+    case "DslExpressionValue":
+      return formatDslExpression(pathValue as DslExpressionValue, context)
+    case "EelExpressionValue":
+      return formatEelExpression(pathValue as EelExpressionValue, context)
+    default:
+      return String(pathValue?.value ?? "")
+  }
 }
 
 function formatDslExpression(value: DslExpressionValue, context: FusionPrinterContext): Doc {
-    const raw = (value.value ?? '').replace(/\r\n/g, '\n')
-    const trimmedEnd = raw.replace(/\s+$/, '')
-    const shouldExpand = trimmedEnd.includes('\n') || trimmedEnd.length > context.lineWidth
+  const raw = (value.value ?? "").replace(/\r\n/g, "\n")
+  const trimmedEnd = raw.replace(/\s+$/, "")
+  const shouldExpand = trimmedEnd.includes("\n") || trimmedEnd.length > context.lineWidth
 
-    if (!shouldExpand) {
-        return concat([value.identifier, '`', trimmedEnd.trim(), '`'])
-    }
+  if (!shouldExpand) {
+    return concat([value.identifier, "`", trimmedEnd.trim(), "`"])
+  }
 
-    const normalized = normalizeMultilineText(trimmedEnd)
-    const bodyDoc = normalized.length > 0 ? join(hardline, normalized) : ''
-    return concat([value.identifier, '`', indent(concat([hardline, bodyDoc])), hardline, '`'])
+  const normalized = normalizeMultilineText(trimmedEnd)
+  const bodyDoc = normalized.length > 0 ? join(hardline, normalized) : ""
+  return concat([value.identifier, "`", indent(concat([hardline, bodyDoc])), hardline, "`"])
 }
 
 function normalizeMultilineText(value: string): string[] {
-    const lines = value.split('\n')
+  const lines = value.split("\n")
 
-    while (lines.length > 0 && lines[0].trim() === '') {
-        lines.shift()
+  while (lines.length > 0 && lines[0].trim() === "") {
+    lines.shift()
+  }
+
+  while (lines.length > 0 && lines[lines.length - 1].trim() === "") {
+    lines.pop()
+  }
+
+  if (lines.length === 0) {
+    return []
+  }
+
+  const indents = lines.filter((line) => line.trim().length > 0).map((line) => line.match(/^[\t ]*/)?.[0].length ?? 0)
+
+  const commonIndent = indents.length > 0 ? Math.min(...indents) : 0
+
+  return lines.map((line) => {
+    if (line.trim().length === 0) {
+      return ""
     }
-
-    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-        lines.pop()
-    }
-
-    if (lines.length === 0) {
-        return []
-    }
-
-    const indents = lines.filter((line) => line.trim().length > 0).map((line) => line.match(/^[\t ]*/)?.[0].length ?? 0)
-
-    const commonIndent = indents.length > 0 ? Math.min(...indents) : 0
-
-    return lines.map((line) => {
-        if (line.trim().length === 0) {
-            return ''
-        }
-        return line.slice(Math.min(commonIndent, line.length))
-    })
+    return line.slice(Math.min(commonIndent, line.length))
+  })
 }
 
 function formatEelExpression(value: EelExpressionValue, context: FusionPrinterContext): Doc {
-    const raw = (getSourceForNode(value, context) ?? String(value.value ?? '')).trim()
-    const formatted = context.embedEelParser ? normalizeEelExpression(raw) : raw
-    return concat(['${', formatted, '}'])
+  const raw = (getSourceForNode(value, context) ?? String(value.value ?? "")).trim()
+  const formatted = context.embedEelParser ? normalizeEelExpression(raw) : raw
+  return concat(["${", formatted, "}"])
 }
 
 function normalizeEelExpression(expression: string): string {
-    return expression
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim()
+  return expression
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function formatAssignedObjectPath(path: AssignedObjectPath | undefined): string {
-    if (!path?.objectPath) {
-        return ''
-    }
+  if (!path?.objectPath) {
+    return ""
+  }
 
-    const formatted = formatObjectPath(path.objectPath)
-    return path.isRelative ? `.${formatted}` : formatted
+  const formatted = formatObjectPath(path.objectPath)
+  return path.isRelative ? `.${formatted}` : formatted
 }
 
 function printComments(comments: Comment[]): Doc {
-    const linesDocs = comments.map((comment) => {
-        const prefix = comment.prefix ?? ''
-        const value = comment.value ?? ''
-        return `${prefix}${value}`
-    })
-    return join(hardline, linesDocs)
+  const linesDocs = comments.map((comment) => {
+    const prefix = comment.prefix ?? ""
+    const value = comment.value ?? ""
+    return `${prefix}${value}`
+  })
+  return join(hardline, linesDocs)
 }
 
 function hasOriginalBlankLine(prev: unknown, next: unknown, context: FusionPrinterContext): boolean {
-    if (!context.sourceText) {
-        return false
-    }
+  if (!context.sourceText) {
+    return false
+  }
 
-    const prevPosition = getNodePosition(prev)
-    const nextPosition = getNodePosition(next)
+  const prevPosition = getNodePosition(prev)
+  const nextPosition = getNodePosition(next)
 
-    if (!prevPosition || !nextPosition) {
-        return false
-    }
+  if (!prevPosition || !nextPosition) {
+    return false
+  }
 
-    const between = context.sourceText.slice(prevPosition.end, nextPosition.begin)
-    return /\n\s*\n/.test(between)
+  const between = context.sourceText.slice(prevPosition.end, nextPosition.begin)
+  return /\n\s*\n/.test(between)
 }
 
 function getSourceForNode(node: unknown, context: FusionPrinterContext): string | undefined {
-    if (!context.sourceText) {
-        return undefined
-    }
+  if (!context.sourceText) {
+    return undefined
+  }
 
-    const position = getNodePosition(node)
-    if (!position) {
-        return undefined
-    }
+  const position = getNodePosition(node)
+  if (!position) {
+    return undefined
+  }
 
-    return context.sourceText.slice(position.begin, position.end)
+  return context.sourceText.slice(position.begin, position.end)
 }
 
 function getNodePosition(node: unknown): { begin: number; end: number } | undefined {
-    if (!node || typeof node !== 'object') {
-        return undefined
-    }
-
-    const candidate = node as NodeWithPosition
-    const begin = candidate.position?.begin
-    const end = candidate.position?.end
-
-    if (typeof begin === 'number' && typeof end === 'number' && end >= begin) {
-        return { begin, end }
-    }
-
+  if (!node || typeof node !== "object") {
     return undefined
+  }
+
+  const candidate = node as NodeWithPosition
+  const begin = candidate.position?.begin
+  const end = candidate.position?.end
+
+  if (typeof begin === "number" && typeof end === "number" && end >= begin) {
+    return { begin, end }
+  }
+
+  return undefined
 }
 
 function quoteString(value: string): string {
-    return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+  return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`
 }
 
 function isFusionFile(node: unknown): node is FusionFile {
-    return Boolean(node && node.constructor && node.constructor.name === 'FusionFile')
+  return Boolean(node && node.constructor && node.constructor.name === "FusionFile")
 }
 
 function isStatementList(node: unknown): node is StatementList {
-    return Boolean(node && node.constructor && node.constructor.name === 'StatementList')
+  return Boolean(node && node.constructor && node.constructor.name === "StatementList")
 }
 
 function isObjectStatement(node: unknown): node is ObjectStatement {
-    return Boolean(node && node.constructor && node.constructor.name === 'ObjectStatement')
+  return Boolean(node && node.constructor && node.constructor.name === "ObjectStatement")
 }
 
 function isIncludeStatement(node: unknown): node is { filePattern: string } {
-    return Boolean(node && node.constructor && node.constructor.name === 'IncludeStatement')
+  return Boolean(node && node.constructor && node.constructor.name === "IncludeStatement")
 }
 
 function isValueAssignment(operation: AbstractOperation): operation is ValueAssignment {
-    return operation.constructor?.name === 'ValueAssignment'
+  return operation.constructor?.name === "ValueAssignment"
 }
 
 function isValueCopy(operation: AbstractOperation): operation is ValueCopy {
-    return operation.constructor?.name === 'ValueCopy'
+  return operation.constructor?.name === "ValueCopy"
 }
 
 function isValueUnset(operation: AbstractOperation): operation is ValueUnset {
-    return operation.constructor?.name === 'ValueUnset'
+  return operation.constructor?.name === "ValueUnset"
 }

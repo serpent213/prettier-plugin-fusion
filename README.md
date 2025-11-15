@@ -15,9 +15,9 @@ Add to your `package.json`:
 
 ```json
 {
-    "devDependencies": {
-        "prettier-plugin-fusion": "github:serpent213/prettier-plugin-fusion#master"
-    }
+  "devDependencies": {
+    "prettier-plugin-fusion": "github:serpent213/prettier-plugin-fusion#master"
+  }
 }
 ```
 
@@ -25,7 +25,7 @@ Add to your `package.json`:
 
 ```json
 {
-    "plugins": ["prettier-plugin-fusion"]
+  "plugins": ["prettier-plugin-fusion"]
 }
 ```
 
