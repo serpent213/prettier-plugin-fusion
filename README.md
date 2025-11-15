@@ -1,4 +1,4 @@
-# Create Prettier Plugin
+# Prettier plugin for Neos Fusion/AFX files
 
 Create Prettier Plugin is boilerplate for creating a prettier plugin.
 

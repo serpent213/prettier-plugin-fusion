@@ -1,8 +1,8 @@
 {
-  "name": "create-prettier-plugin",
-  "version": "1.0.0",
+  "name": "prettier-plugin-fusion",
+  "version": "0.0.1",
   "type": "module",
-  "description": "A Boilerplate for Creating Prettier Plugin",
+  "description": "Prettier plugin for Neos Fusion/AFX files",
   "main": "dist/index.js",
   "scripts": {
     "build:lib": "rollup --config=rollup.config.ts --configPlugin=@rollup/plugin-typescript",
@@ -16,7 +16,7 @@
     "template",
     "boilerplate"
   ],
-  "author": "Nurul Akbar Al",
+  "author": "Steffen Beyer",
   "license": "MIT",
   "peerDependencies": {
     "prettier": "^3.2.5"

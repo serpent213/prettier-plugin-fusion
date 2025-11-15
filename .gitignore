@@ -1,4 +1,16 @@
+# Libs, build, misc
 node_modules
 dist
 .DS_Store
 *.log
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
