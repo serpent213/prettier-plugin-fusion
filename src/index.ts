@@ -15,6 +15,90 @@ type NodeWithPosition = {
     }
 }
 
+type ErrorWithPosition = Error & {
+    position?: number
+    getPosition?: () => number
+}
+
+type FusionParserSyntaxError = SyntaxError & {
+    fusionParserError?: true
+    loc?: {
+        start: {
+            line: number
+            column: number
+        }
+    }
+    cause?: unknown
+}
+
+function shouldIgnoreParserErrors(options: ParserOptions): boolean {
+    return options.fusionIgnoreParserErrors ?? false
+}
+
+function isFusionParserSyntaxError(error: unknown): error is FusionParserSyntaxError {
+    return Boolean(error && typeof error === 'object' && (error as FusionParserSyntaxError).fusionParserError)
+}
+
+function createFusionParserSyntaxError(error: unknown, sourceText: string, filePath?: string): FusionParserSyntaxError {
+    const baseError =
+        error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Unknown parser error')
+
+    const offset = getErrorPosition(baseError)
+    const location = typeof offset === 'number' && offset >= 0 ? getLocationFromOffset(sourceText, offset) : undefined
+    const fileLabel = filePath || 'Fusion document'
+    const locationLabel = location ? `${fileLabel}:${location.line}:${location.column}` : fileLabel
+    const prefix = location ? 'at' : 'in'
+
+    const syntaxError = new SyntaxError(
+        `Fusion parser error ${prefix} ${locationLabel}: ${baseError.message}`,
+    ) as FusionParserSyntaxError
+
+    syntaxError.fusionParserError = true
+    syntaxError.cause = baseError
+
+    if (location) {
+        syntaxError.loc = {
+            start: {
+                line: location.line,
+                column: location.column,
+            },
+        }
+    }
+
+    return syntaxError
+}
+
+function getErrorPosition(error: ErrorWithPosition): number | undefined {
+    if (typeof error.position === 'number') {
+        return error.position
+    }
+
+    if (typeof error.getPosition === 'function') {
+        const result = error.getPosition()
+        if (typeof result === 'number') {
+            return result
+        }
+    }
+
+    return undefined
+}
+
+function getLocationFromOffset(sourceText: string, index: number): { line: number; column: number } {
+    if (sourceText.length === 0) {
+        return { line: 1, column: 1 }
+    }
+
+    const normalizedIndex = Math.max(0, Math.min(index, sourceText.length))
+    const precedingText = sourceText.slice(0, normalizedIndex)
+    const lines = precedingText.split(/\r?\n/)
+
+    const line = lines.length
+    const lastLine = lines[line - 1] ?? ''
+    const column = lastLine.length + 1
+
+    return { line, column }
+}
+
 function buildEelParserOptions(options: ParserOptions): EelParserOptions {
     return {
         allowIncompleteObjectPaths: options.fusionAllowIncompleteEelPaths ?? true,
@@ -29,9 +113,10 @@ function buildAfxParserOptions(options: ParserOptions): AfxParserOptions {
 }
 
 function buildFusionParserOptions(options: ParserOptions): FusionParserOptions {
+    const ignoreErrors = shouldIgnoreParserErrors(options)
     return {
-        ignoreErrors: options.fusionIgnoreParserErrors ?? true,
-        allowIncompleteObjectStatements: options.fusionAllowIncompleteObjectStatements ?? true,
+        ignoreErrors,
+        allowIncompleteObjectStatements: options.fusionAllowIncompleteObjectStatements ?? false,
         afxParserOptions: buildAfxParserOptions(options),
         eelParserOptions: buildEelParserOptions(options),
     }
@@ -65,9 +150,22 @@ export const parsers: Record<'fusion', Parser> = {
     fusion: {
         parse(text: string, options: ParserOptions) {
             const contextPath = options.fusionContextPath || options.filepath
-            const fusionFile = ObjectTreeParser.parse(text, contextPath, buildFusionParserOptions(options))
+            const parserOptions = buildFusionParserOptions(options)
 
-            return fusionFile
+            try {
+                const fusionFile = ObjectTreeParser.parse(text, contextPath, parserOptions)
+
+                if (!parserOptions.ignoreErrors && fusionFile.errors.length > 0) {
+                    throw createFusionParserSyntaxError(fusionFile.errors[0], text, contextPath)
+                }
+
+                return fusionFile
+            } catch (error) {
+                if (isFusionParserSyntaxError(error)) {
+                    throw error
+                }
+                throw createFusionParserSyntaxError(error, text, contextPath)
+            }
         },
         astFormat: FUSION_AST_FORMAT,
         locStart(node) {
@@ -108,13 +206,13 @@ export const options: Record<
     fusionIgnoreParserErrors: {
         type: 'boolean',
         category: OPTION_CATEGORY,
-        default: true,
+        default: false,
         description: 'Forwarded to ts-fusion-parser ignoreErrors option to keep formatting resilient to syntax errors.',
     },
     fusionAllowIncompleteObjectStatements: {
         type: 'boolean',
         category: OPTION_CATEGORY,
-        default: true,
+        default: false,
         description: 'Allows incomplete Fusion object statements while typing.',
     },
     fusionAllowIncompleteEelPaths: {
