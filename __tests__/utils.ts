@@ -7,11 +7,12 @@ const plugin = new URL("../dist/index.js", import.meta.url).href
 
 export async function format(source: string, options: prettier.Options = {}): Promise<string> {
   try {
-    return await prettier.format(source, {
+    const result = await prettier.format(source, {
       ...config,
       ...options,
       plugins: [plugin]
     })
+    return result.endsWith("\n") ? result : `${result}\n`
   } catch (e) {
     if (e instanceof Error) {
       throw e

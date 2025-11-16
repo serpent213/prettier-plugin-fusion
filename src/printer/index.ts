@@ -13,13 +13,14 @@ import type { EelExpressionValue } from "ts-fusion-parser/out/fusion/nodes/EelEx
 import type { ObjectPath } from "ts-fusion-parser/out/fusion/nodes/ObjectPath"
 import type { Comment } from "ts-fusion-parser/out/common/Comment"
 import type { AssignedObjectPath } from "ts-fusion-parser/out/fusion/nodes/AssignedObjectPath"
-import { concat, group, hardline, indent, join, mapDoc, stripTrailingHardline } from "./docBuilders"
+import { concat, group, hardline, ifBreak, indent, join, line, mapDoc, stripTrailingHardline } from "./docBuilders"
 
 type FusionPrinterContext = {
   sourceText: string
   lineWidth: number
   embedEelParser: boolean
   useSingleQuote: boolean
+  tabWidth: number
 }
 
 type NodeWithPosition = { position?: { begin?: number; end?: number } }
@@ -27,28 +28,6 @@ type AfxDslExpressionValue = DslExpressionValue & { __formattedAfxDoc?: Doc }
 
 const AFX_EEL_PLACEHOLDER_PREFIX = "__FUSION_AFX_EEL_"
 const AFX_EEL_PLACEHOLDER_PATTERN = /(['"])?__FUSION_AFX_EEL_(\d+)__\1?/g
-
-function docContainsLineBreak(doc: Doc): boolean {
-  if (typeof doc === "string") {
-    return false
-  }
-
-  if (Array.isArray(doc)) {
-    return doc.some(docContainsLineBreak)
-  }
-
-  if (typeof doc === "object" && doc !== null) {
-    // Check for any line break or indent which suggests multi-line formatting
-    if ("type" in doc) {
-      if (doc.type === "line" || doc.type === "indent" || doc.type === "line-suffix-boundary") {
-        return true
-      }
-    }
-    return Object.values(doc).some((value) => docContainsLineBreak(value as Doc))
-  }
-
-  return false
-}
 
 export const embedFusionAst: NonNullable<Printer["embed"]> = (path: AstPath, options: Options) => {
   const node = path.getValue()
@@ -60,7 +39,9 @@ export const embedFusionAst: NonNullable<Printer["embed"]> = (path: AstPath, opt
   const lineWidth = resolveLineWidth(options)
 
   return async (textToDoc) => {
-    const content = getNormalizedAfxContent(node)
+    const rawContent = (node.value ?? "").replace(/\r\n/g, "\n")
+    const normalizedContent = dedentAfxContent(node)
+    const content = softWrapAfxContent(normalizedContent, lineWidth)
 
     if (!content) {
       const emptyDoc = concat([node.identifier, "`", "`"])
@@ -78,8 +59,20 @@ export const embedFusionAst: NonNullable<Printer["embed"]> = (path: AstPath, opt
     })
     const restored = restoreEelExpressions(stripTrailingHardline(htmlDoc), placeholders)
 
-    // Check if the formatted HTML contains line breaks
-    const shouldExpand = docContainsLineBreak(restored)
+    const normalizedLines = content.split("\n")
+    const exceedsLineWidth = normalizedLines.some((line) => line.length > lineWidth)
+    const hasNormalizedBreaks = normalizedLines.length > 1
+    const isSplitClosingTag =
+      normalizedLines.length === 2 &&
+      normalizedLines[1].trim() === "/>" &&
+      (normalizedLines[0]?.trim().length ?? 0) + 3 <= lineWidth
+    const hasOuterPadding = rawContent.startsWith("\n") || rawContent.endsWith("\n")
+    const shouldKeepBlockPadding =
+      hasOuterPadding &&
+      !hasNormalizedBreaks &&
+      !isSplitClosingTag &&
+      (normalizedLines[0]?.length ?? 0) >= lineWidth * 0.75
+    const shouldExpand = (hasNormalizedBreaks && !isSplitClosingTag) || exceedsLineWidth || shouldKeepBlockPadding
 
     const wrapped = shouldExpand
       ? concat([node.identifier, "`", indent(concat([hardline, restored])), hardline, "`"])
@@ -133,7 +126,8 @@ function createContext(options: ParserOptions): FusionPrinterContext {
     sourceText: source,
     lineWidth: resolveLineWidth(options),
     embedEelParser: options.fusionEmbedEelParser ?? false,
-    useSingleQuote: options.singleQuote === true
+    useSingleQuote: options.singleQuote === true,
+    tabWidth: resolveTabWidth(options)
   }
 }
 
@@ -168,6 +162,7 @@ function printStatementList(list: StatementList | undefined, context: FusionPrin
     })
 
   const parts: Doc[] = []
+  let seenNonComment = false
 
   for (let i = 0; i < items.length; i += 1) {
     const current = items[i].node
@@ -178,9 +173,22 @@ function printStatementList(list: StatementList | undefined, context: FusionPrin
 
     if (next) {
       parts.push(hardline)
-      if (hasOriginalBlankLine(current, next, context) || hasNonEmptyBlock(current)) {
+      const hasPrevContent = seenNonComment || !isCommentNode(current)
+      const originalBlankLine = hasOriginalBlankLine(current, next, context)
+      const sharePath = areSameStatementPaths(current, next)
+      const leadingCommentForNextBlock =
+        isCommentNode(current) && hasNonEmptyBlock(next) && !originalBlankLine && !sharePath
+      const needsSpacing =
+        originalBlankLine ||
+        (hasNonEmptyBlock(current) && !sharePath) ||
+        (hasPrevContent && hasNonEmptyBlock(next) && !sharePath && !leadingCommentForNextBlock)
+      if (needsSpacing) {
         parts.push(hardline)
       }
+    }
+
+    if (!isCommentNode(current)) {
+      seenNonComment = true
     }
   }
 
@@ -350,19 +358,46 @@ function normalizeMultilineText(value: string): string[] {
 }
 
 function formatEelExpression(value: EelExpressionValue, context: FusionPrinterContext): Doc {
-  const raw = (getSourceForNode(value, context) ?? String(value.value ?? "")).trim()
-  const formatted = context.embedEelParser ? normalizeEelExpression(raw) : raw
-  return concat(["${", formatted, "}"])
-}
+  const raw = (getSourceForNode(value, context) ?? String(value.value ?? "")).replace(/\r\n?/g, "\n").trim()
+  const normalized = normalizeEelWhitespace(raw)
+  const baseColumn = getEelExpressionBaseColumn(value, context)
+  const logicalParts = splitLogicalExpression(normalized)
+  const hasLogicalOperators = logicalParts.some((part) => part === "||" || part === "&&")
+  const shouldMultiline = normalized.includes("\n") || normalized.length + (baseColumn ?? 0) > context.lineWidth
 
-function normalizeEelExpression(expression: string): string {
-  return expression
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim()
+  if (hasLogicalOperators) {
+    const lineIndentation = getLineIndentation(value, context) ?? 0
+    const continuationPadding = Math.max(0, (baseColumn ?? lineIndentation) - lineIndentation + context.tabWidth * 2)
+    const continuationIndent = continuationPadding > 0 ? ifBreak(" ".repeat(continuationPadding), "") : ""
+    const parts: Doc[] = []
+    for (let index = 0; index < logicalParts.length; index += 1) {
+      const part = logicalParts[index] ?? ""
+
+      if (index === 0) {
+        parts.push(part)
+        continue
+      }
+
+      const isOperator = part === "||" || part === "&&"
+      if (isOperator) {
+        const next = logicalParts[index + 1] ?? ""
+        parts.push(line, continuationIndent, part, " ", next)
+        index += 1
+      } else {
+        parts.push(line, continuationIndent, part)
+      }
+    }
+
+    return concat(["${", group(concat(parts)), "}"])
+  }
+
+  if (shouldMultiline) {
+    const continuationPadding = Math.max(0, context.tabWidth)
+    const continuationIndent = continuationPadding > 0 ? " ".repeat(continuationPadding) : ""
+    return concat(["${", hardline, continuationIndent, normalized, hardline, "}"])
+  }
+
+  return concat(["${", normalized, "}"])
 }
 
 function formatAssignedObjectPath(path: AssignedObjectPath | undefined): string {
@@ -501,6 +536,14 @@ function hasNonEmptyBlock(statement: unknown): boolean {
   return (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
 }
 
+function areSameStatementPaths(first: unknown, second: unknown): boolean {
+  if (!isObjectStatement(first) || !isObjectStatement(second)) {
+    return false
+  }
+
+  return formatObjectPath(first.path) === formatObjectPath(second.path)
+}
+
 function resolveLineWidth(options: { fusionLineWidth?: number; printWidth?: number }): number {
   if (typeof options.fusionLineWidth === "number") {
     return options.fusionLineWidth
@@ -513,10 +556,175 @@ function resolveLineWidth(options: { fusionLineWidth?: number; printWidth?: numb
   return 80
 }
 
-function getNormalizedAfxContent(value: DslExpressionValue): string {
+function resolveTabWidth(options: { tabWidth?: number }): number {
+  if (typeof options.tabWidth === "number" && options.tabWidth > 0) {
+    return options.tabWidth
+  }
+
+  return 2
+}
+
+function normalizeEelWhitespace(expression: string): string {
+  let normalized = ""
+  let inString: "'" | '"' | null = null
+  let escaped = false
+  let pendingWhitespace = false
+
+  for (let index = 0; index < expression.length; index += 1) {
+    const char = expression[index] ?? ""
+
+    if (escaped) {
+      normalized += char
+      escaped = false
+      continue
+    }
+
+    if (char === "\\" && inString) {
+      normalized += char
+      escaped = true
+      continue
+    }
+
+    if (!inString && (char === "'" || char === '"')) {
+      if (pendingWhitespace) {
+        normalized += " "
+        pendingWhitespace = false
+      }
+      normalized += char
+      inString = char
+      continue
+    }
+
+    if (inString) {
+      if (char === inString) {
+        inString = null
+      }
+      normalized += char
+      continue
+    }
+
+    if (/\s/.test(char)) {
+      pendingWhitespace = true
+      continue
+    }
+
+    if (pendingWhitespace) {
+      normalized += " "
+      pendingWhitespace = false
+    }
+
+    normalized += char
+  }
+
+  const output = pendingWhitespace ? normalized.trimEnd() : normalized
+  return output.trim()
+}
+
+function splitLogicalExpression(expression: string): string[] {
+  const parts: string[] = []
+  let buffer = ""
+  let inString: "'" | '"' | null = null
+  let escaped = false
+
+  for (let index = 0; index < expression.length; index += 1) {
+    const char = expression[index] ?? ""
+    const nextTwo = expression.slice(index, index + 2)
+
+    if (escaped) {
+      buffer += char
+      escaped = false
+      continue
+    }
+
+    if (char === "\\" && inString) {
+      buffer += char
+      escaped = true
+      continue
+    }
+
+    if (char === inString) {
+      buffer += char
+      inString = null
+      continue
+    }
+
+    if (!inString && (char === "'" || char === '"')) {
+      buffer += char
+      inString = char
+      continue
+    }
+
+    const isLogicalOperator = !inString && (nextTwo === "&&" || nextTwo === "||")
+    if (isLogicalOperator) {
+      if (buffer.trim()) {
+        parts.push(buffer.trim())
+      }
+      parts.push(nextTwo)
+      buffer = ""
+      index += 1
+      continue
+    }
+
+    buffer += char
+  }
+
+  if (buffer.trim()) {
+    parts.push(buffer.trim())
+  }
+
+  return parts
+}
+
+function getEelExpressionBaseColumn(value: EelExpressionValue, context: FusionPrinterContext): number | undefined {
+  const position = getNodePosition(value)
+  if (!context.sourceText || !position) {
+    return undefined
+  }
+
+  const startOfExpression = position.begin
+  const source = context.sourceText
+  const openBraceIndex = source.lastIndexOf("${", startOfExpression)
+  if (openBraceIndex < 0) {
+    return undefined
+  }
+
+  const lineStart = source.lastIndexOf("\n", openBraceIndex)
+  return openBraceIndex - (lineStart + 1)
+}
+
+function getLineIndentation(value: EelExpressionValue, context: FusionPrinterContext): number | undefined {
+  const position = getNodePosition(value)
+  if (!context.sourceText || !position) {
+    return undefined
+  }
+
+  const source = context.sourceText
+  const openBraceIndex = source.lastIndexOf("${", position.begin)
+  if (openBraceIndex < 0) {
+    return undefined
+  }
+
+  const lineStart = source.lastIndexOf("\n", openBraceIndex)
+  const lineText = source.slice(lineStart + 1, openBraceIndex + 1)
+  const indentMatch = lineText.match(/^[\t ]*/)
+  return indentMatch ? indentMatch[0].length : undefined
+}
+
+function dedentAfxContent(value: DslExpressionValue): string {
   const raw = (value.value ?? "").replace(/\r\n/g, "\n")
   const normalized = normalizeMultilineText(raw)
   return normalized.join("\n")
+}
+
+function softWrapAfxContent(content: string, lineWidth: number): string {
+  if (!content) {
+    return content
+  }
+
+  return content
+    .split("\n")
+    .map((line) => (line.length > lineWidth ? line.replace(/>\s*</g, ">\n<") : line))
+    .join("\n")
 }
 
 function maskEelExpressions(content: string): { sanitized: string; placeholders: string[] } {
@@ -541,7 +749,7 @@ function maskEelExpressions(content: string): { sanitized: string; placeholders:
       if (depth === 0 && start >= 0) {
         const expression = content.slice(start, index + 1)
         const placeholder = `${AFX_EEL_PLACEHOLDER_PREFIX}${placeholders.length}__`
-        placeholders.push(expression)
+        placeholders.push(normalizeMaskedEelExpression(expression))
         sanitized += placeholder
         start = -1
         continue
@@ -558,6 +766,16 @@ function maskEelExpressions(content: string): { sanitized: string; placeholders:
   }
 
   return { sanitized, placeholders }
+}
+
+function normalizeMaskedEelExpression(expression: string): string {
+  const trimmed = expression.trim()
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    const inner = trimmed.slice(1, -1)
+    return `{${normalizeEelWhitespace(inner)}}`
+  }
+
+  return normalizeEelWhitespace(trimmed)
 }
 
 function restoreEelExpressions(doc: Doc, placeholders: string[]): Doc {

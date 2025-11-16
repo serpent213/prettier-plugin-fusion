@@ -4,6 +4,7 @@
 prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {
   renderer = Neos.Fusion.Form:Runtime.RuntimeForm {
     namespace = "neos-demo-registration"
+
     attributes {
       id = ${'form-' + node.aggregateId}
       action = ${'#' + this.id}
@@ -29,7 +30,9 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
       `
 
       schema {
-        username = ${Form.Schema.string().isRequired().validator('Neos\Demo\Form\Runtime\Validation\Validator\UsernameInUseValidator')}
+        username = ${
+          Form.Schema.string().isRequired().validator('Neos\Demo\Form\Runtime\Validation\Validator\UsernameInUseValidator')
+        }
         password = ${Form.Schema.string().isRequired()}
       }
     }
@@ -37,6 +40,7 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
     action {
       createBackendUser {
         type = "Neos.Demo.Form.Runtime:CreateUser"
+
         options {
           username = ${data.username}
           password = ${data.password}
@@ -53,10 +57,12 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
 
       redirect {
         type = "Neos.Fusion.Form.Runtime:Redirect"
+
         options.uri = Neos.Fusion:UriBuilder {
           package = "Neos.Neos"
           controller = "Login"
           action = "index"
+
           additionalParams {
             username = ${data.username}
           }

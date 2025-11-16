@@ -1,0 +1,169 @@
+prototype(Two13Tec.Senegal:Presentation.AssetList.Icon) < prototype(Neos.Fusion:Component) {
+    mediaType  = ''
+    filename = ''
+
+    @private {
+        normalizedMediaType = ${String.toLowerCase(props.mediaType || '')}
+        normalizedFilename = ${String.toLowerCase(props.filename ||  '')}
+
+        icon = Neos.Fusion:Case {
+           pdf {
+                condition = ${String.indexOf(private.normalizedMediaType, 'pdf') >= 0 || String.endsWith(private.normalizedFilename, '.pdf')}
+                renderer = 'icon-[fa7-solid--file-pdf]'
+            }
+            word {
+                condition = ${
+                    String.indexOf(private.normalizedMediaType, 'word') >= 0 || String.endsWith(private.normalizedFilename, '.doc') || String.endsWith(private.normalizedFilename, '.docx')
+                }
+                renderer = 'icon-[fa7-solid--file-word]'
+            }
+            excel {
+                condition = ${String.indexOf(private.normalizedMediaType, 'excel') >= 0 || String.indexOf(private.normalizedMediaType, 'spreadsheet') >= 0 || String.endsWith(private.normalizedFilename, '.xls') || String.endsWith(private.normalizedFilename, '.xlsx')}
+                renderer = 'icon-[fa7-solid--file-excel]'
+            }
+            powerpoint {
+                condition = ${String.indexOf(private.normalizedMediaType, 'powerpoint') >= 0 || String.indexOf(private.normalizedMediaType, 'presentation') >= 0 || String.endsWith(private.normalizedFilename, '.ppt') || String.endsWith(private.normalizedFilename, '.pptx')}
+                renderer = 'icon-[fa7-solid--file-powerpoint]'
+            }
+            image {
+                condition = ${String.startsWith(private.normalizedMediaType, 'image/')}
+                renderer = 'icon-[fa7-solid--file-image]'
+            }
+            video {
+                condition = ${String.startsWith(private.normalizedMediaType, 'video/')}
+                renderer = 'icon-[fa7-solid--file-video]'
+            }
+            audio {
+                condition = ${String.startsWith(private.normalizedMediaType, 'audio/')}
+                renderer = 'icon-[fa7-solid--file-audio]'
+            }
+            archive {
+                condition = ${String.indexOf(private.normalizedMediaType, 'zip') >= 0 || String.indexOf(private.normalizedMediaType, 'compressed') >= 0 || String.endsWith(private.normalizedFilename, '.zip') || String.endsWith(private.normalizedFilename, '.rar') || String.endsWith(private.normalizedFilename, '.gz') || String.endsWith(private.normalizedFilename, '.tar')}
+                renderer = 'icon-[fa7-solid--file-zipper]'
+            }
+            code {
+                condition = ${String.indexOf(private.normalizedMediaType, 'json') >= 0 || String.indexOf(private.normalizedMediaType, 'xml') >= 0 || String.indexOf(private.normalizedMediaType, 'javascript') >= 0 || String.indexOf(private.normalizedMediaType, 'html') >= 0 || String.endsWith(private.normalizedFilename, '.json') || String.endsWith(private.normalizedFilename, '.xml') || String.endsWith(private.normalizedFilename, '.js') || String.endsWith(private.normalizedFilename, '.html')}
+                renderer = 'icon-[fa7-solid--file-code]'
+            }
+            default {
+                condition = true
+                renderer = 'icon-[fa7-solid--file-lines]'
+            }
+        }
+    }
+
+    renderer = afx`
+        <span class={'py-[1.125rem] ' +  private.icon} aria-hidden="true" ></span>
+    `
+}
+
+prototype(Two13Tec.Senegal:Presentation.AssetList.Item) < prototype(Neos.Fusion:Component) {
+    asset = null
+
+    @private {
+        resource = ${props.asset ? props.asset.resource : null}
+        mediaType = ${private.resource ? private.resource.mediaType : ''}
+        filename = ${private.resource ? private.resource.filename : ''}
+        hasResource = ${private.resource ? true : false}
+        displayName = ${props.asset && props.asset.title ? props.asset.title : (private.filename || '')}
+        caption = ${props.asset && props.asset.caption || ''}
+    }
+
+    renderer = afx`
+        <li class="border-b border-separator/30 last:border-b-0">
+            <Neos.Fusion:Link.Resource @if.hasResource={private.hasResource} href.resource={private.resource} class="flex items-start gap-4 py-2 -mx-2 px-2 rounded-md hover:bg-hover-background/30 transition-colors">
+                <div class="w-6 text-2xl text-primary-600" aria-hidden="true">
+                    <Two13Tec.Senegal:Presentation.AssetList.Icon mediaType={private.mediaType} filename={private.filename} />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="font-semibold">
+                        {private.displayName }
+                    </span>
+                    <span
+                        @if.hasMeta={private.caption}
+                        class="text-sm text-neutral-500"
+                    >
+                        {private.caption}
+                    </span>
+                </div>
+            </Neos.Fusion:Link.Resource>
+            <div
+                @if.noResource={!private.hasResource}
+                class="flex items-start gap-4 py-2"
+            >
+                <div class="text-xl text-primary-600" aria-hidden="true">
+                    <Two13Tec.Senegal:Presentation.AssetList.Icon mediaType={private.mediaType} filename={private.filename} />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="font-semibold"
+                    >
+                        {private.displayName }
+                    </span>
+                    <span
+                        @if.hasMeta={private.caption}
+                        class="text-sm text-neutral-500"
+                    >
+                        {private.caption}
+                    </span>
+                </div>
+            </div>
+        </li>
+    `
+}
+
+prototype(Two13Tec.Senegal:Presentation.AssetList) < prototype(Neos.Fusion:Component) {
+    assets = null
+    attributes = Neos.Fusion:DataStructure
+
+    renderer = afx`
+        <ul {...props.attributes}>
+            <li
+                class="text-sm text-neutral-500"
+                @if.showPlaceholder={!props.assets && renderingMode.isEdit}
+            >
+                {Translation.id('content.emptyAssetList').package('Neos.NodeTypes.AssetList').source('NodeTypes/AssetList')}
+            </li>
+            <Neos.Fusion:Loop items={props.assets} itemName="asset"><Two13Tec.Senegal:Presentation.AssetList.Item asset={asset}/></Neos.Fusion:Loop>
+        </ul>
+    `
+}
+
+// TODO: Review - should that live here?
+prototype(Neos.NodeTypes.AssetList:AssetList) {
+    assets = ${q(node).property('assets')}
+
+    attributes = Neos.Fusion:DataStructure
+    attributes.class = 'content-asset-list list-none p-0 m-0'
+    attributes.class.@process.nodeType = ${Array.push(value, String.toLowerCase(String.pregReplace(node.nodeTypeName, '/[[:^alnum:]]/', '-')))}
+
+    @if.render = ${this.assets || renderingMode.isEdit}
+
+    renderer >
+    renderer = Neos.Fusion:Case {
+        wrapped {
+            condition = ${!context.inContainer}
+            renderer = afx`
+                <section class="content-shell content-surface content-padded">
+                    <div class="content-inner">
+                        <Two13Tec.Senegal:Presentation.AssetList assets={props.assets} attributes={props.attributes} />
+                    </div>
+                </section>
+            `
+        }
+        atest {
+            condition = false
+            renderer = afx`<Two13Tec.Senegal:Presentation.AssetList assets={props.assets} attributes={props.attributes}
+                />`
+        }
+        btest {
+            condition = false
+            renderer = afx`<Two13Tec.Senegal:Presentation.AssetList assets={props.assets} attributes={props.attributes} />`
+        }
+        default {
+            condition = true
+            renderer = afx`
+                <Two13Tec.Senegal:Presentation.AssetList assets={props.assets} attributes={props.attributes} />
+            `
+        }
+    }
+}

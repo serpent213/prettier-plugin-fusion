@@ -15,13 +15,12 @@ prototype(Neos.Demo:Content.TextWithImage) < prototype(Neos.Neos:ContentComponen
   alt = ${q(node).property('alternativeText')}
   title = ${q(node).property('title')}
   hasCaption = ${q(node).property('hasCaption')}
+
   caption = Neos.Neos:Editable {
     property = "caption"
   }
 
   renderDummyImage = ${renderingMode.isEdit || renderingMode.isPreview}
 
-  renderer = afx`
-    <Neos.Demo:Presentation.TextWithImage {...props} />
-  `
+  renderer = afx`<Neos.Demo:Presentation.TextWithImage {...props} />`
 }
