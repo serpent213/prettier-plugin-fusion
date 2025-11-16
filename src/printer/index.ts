@@ -544,11 +544,7 @@ function areSameStatementPaths(first: unknown, second: unknown): boolean {
   return formatObjectPath(first.path) === formatObjectPath(second.path)
 }
 
-function resolveLineWidth(options: { fusionLineWidth?: number; printWidth?: number }): number {
-  if (typeof options.fusionLineWidth === "number") {
-    return options.fusionLineWidth
-  }
-
+function resolveLineWidth(options: { printWidth?: number }): number {
   if (typeof options.printWidth === "number") {
     return options.printWidth
   }

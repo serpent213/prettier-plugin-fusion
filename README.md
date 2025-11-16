@@ -44,8 +44,6 @@ options that mirror the `ts-fusion-parser` configuration:
 | `fusionAllowIncompleteObjectStatements` | `false`     | Set to `true` when you want to allow unfinished Fusion object statements while editing.                  |
 | `fusionAllowIncompleteEelPaths`         | `true`      | Allows incomplete EEL object paths.                                                                      |
 | `fusionAllowUnclosedAfxTags`            | `true`      | Lets the AFX parser auto-close tags the way the VS Code tooling does.                                    |
-| `fusionLineWidth`                       | `undefined` | Optional override that controls when embedded DSL blocks expand to multiple lines.                       |
-| `fusionEmbedEelParser`                  | `false`     | Collapses whitespace inside embedded EEL expressions for a JS-like look.                                 |
 
 ## Funktionsweise
 
