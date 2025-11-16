@@ -1,9 +1,9 @@
-# Prettier plugin for Neos Fusion/AFX files
+# Prettier plugin for Neos CMS Fusion/AFX files
 
 _ALPHA SOFTWARE – HANDLE WITH CARE!_
 
-This is a Prettier plugin that understands Neos Fusion/AFX syntax through the
-[`ts-fusion-parser`](https://jsr.io/@sjs/ts-fusion-parser). The parser is production proven (it powers the
+This is a Prettier plugin that understands [Neos Fusion/AFX](https://docs.neos.io/guide/rendering/fusion) syntax through
+the [`ts-fusion-parser`](https://jsr.io/@sjs/ts-fusion-parser). The parser is production proven (it powers the
 Neos Fusion VS Code extension) and can parse Fusion code, embedded AFX markup, and inline EEL expressions.
 
 The printer mirrors the parser’s object model and emits Prettier docs, which means Fusion statements, nested blocks,
@@ -11,17 +11,14 @@ embedded AFX templates, and inline EEL expressions are formatted consistently.
 
 ## Usage
 
-Add to your `package.json`:
-
-```json
-{
-  "devDependencies": {
-    "prettier-plugin-fusion": "github:serpent213/prettier-plugin-fusion#master"
-  }
-}
+```sh
+npm install --save-dev prettier-plugin-fusion
+yarn add--dev prettier-plugin-fusion
+pnpm install --save-dev prettier-plugin-fusion
+bun add --development prettier-plugin-fusion
 ```
 
-...and your `.prettierrc`:
+Add to your `.prettierrc`:
 
 ```json
 {
@@ -29,7 +26,7 @@ Add to your `package.json`:
 }
 ```
 
-Then:
+...and run:
 
 ```sh
 # Format Fusion files in-place
