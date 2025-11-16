@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-fusion",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "Prettier plugin for Neos Fusion/AFX files",
   "keywords": [
@@ -13,7 +13,8 @@
   "main": "dist/index.js",
   "files": [
     "dist",
-    "src"
+    "src",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build:lib": "rollup --config=rollup.config.ts --configPlugin=@rollup/plugin-typescript",
