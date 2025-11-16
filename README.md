@@ -18,11 +18,11 @@ pnpm install --save-dev prettier-plugin-fusion
 bun add --development prettier-plugin-fusion
 ```
 
-Add to your `.prettierrc`:
+Add to your `.prettierrc.js`:
 
-```json
-{
-  "plugins": ["prettier-plugin-fusion"]
+```js
+module.exports = {
+  plugins: [require.resolve("prettier-plugin-fusion")]
 }
 ```
 
