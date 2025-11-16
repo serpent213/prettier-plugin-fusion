@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-fusion",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Prettier plugin for Neos Fusion/AFX files",
   "keywords": [
