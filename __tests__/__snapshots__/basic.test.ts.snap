@@ -11,8 +11,17 @@ exports[`Fusion > AssetList 1`] = `
 
     icon = Neos.Fusion:Case {
       pdf {
-        condition = \${String.indexOf(private.normalizedMediaType, 'pdf') >= 0
-                        || String.endsWith(private.normalizedFilename, '.pdf')}
+        condition = \${
+          Strange.superMamba(
+            private.normalizedMediaType,
+            'pdf',
+            private.normalizedMediaType,
+            'pdf',
+            private.normalizedMediaType,
+            'pdf'
+          ) >= 0
+            || String.endsWith(private.normalizedFilename, '.pdf')
+        }
         renderer = "icon-[fa7-solid--file-pdf]"
       }
 

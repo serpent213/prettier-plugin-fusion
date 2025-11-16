@@ -5,10 +5,10 @@ _OUTPUT FORMAT NOT STABLE YET!_
 
 This is a Prettier plugin that understands [Neos Fusion/AFX](https://docs.neos.io/guide/rendering/fusion) syntax through
 the [`ts-fusion-parser`](https://jsr.io/@sjs/ts-fusion-parser). The parser is production proven (it powers the
-Neos Fusion VS Code extension) and can parse Fusion code, embedded AFX markup, and inline EEL expressions.
+Neos Fusion VS Code extension) and can parse Fusion code, embedded AFX markup, and inline (unparsed) Eel expressions.
 
 The printer mirrors the parser’s object model and emits Prettier docs, which means Fusion statements, nested blocks,
-embedded AFX templates, and inline EEL expressions are formatted consistently.
+embedded AFX templates, and inline Eel expressions are formatted consistently.
 
 ## Usage
 
@@ -42,7 +42,7 @@ options that mirror the `ts-fusion-parser` configuration:
 | `fusionContextPath`                     | `undefined` | Optional context path forwarded to the parser (defaults to Prettier's filepath).                         |
 | `fusionIgnoreParserErrors`              | `false`     | Set to `true` to keep formatting resilient while typing by collecting parser errors instead of throwing. |
 | `fusionAllowIncompleteObjectStatements` | `false`     | Set to `true` when you want to allow unfinished Fusion object statements while editing.                  |
-| `fusionAllowIncompleteEelPaths`         | `true`      | Allows incomplete EEL object paths.                                                                      |
+| `fusionAllowIncompleteEelPaths`         | `true`      | Allows incomplete Eel object paths.                                                                      |
 | `fusionAllowUnclosedAfxTags`            | `true`      | Lets the AFX parser auto-close tags the way the VS Code tooling does.                                    |
 
 ## Funktionsweise
@@ -51,7 +51,7 @@ options that mirror the `ts-fusion-parser` configuration:
 
 - **AFX/HTML**: When a DSL expression is marked as `afx`, the `embed` hook normalises leading/trailing whitespace, masks embedded Eel placeholders, and lets Prettier’s `html` parser format the inner markup. The result is restored and wrapped back into the ``afx`...` `` fence.
 
-- **Eel**: Inline `${...}` expressions are normalised to a single-space style (`a && b`), optionally collating whitespace via `fusionEmbedEelParser`. Logical operators trigger multi-line grouping with continuation indent, while shorter expressions stay inline.
+- **Eel**: `${...}` is treated as a string value (that’s what `ts-fusion-parser` gives us). We keep the original text as the source of truth, normalise whitespace, split logical operators onto continuation lines when they spill past the print width, and break long function-call arguments heuristically. There is no dedicated Eel AST here, so formatting falls back to these best-effort string transforms rather than semantic reprinting.
 
 ## Development
 

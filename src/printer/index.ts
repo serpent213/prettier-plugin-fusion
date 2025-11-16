@@ -13,7 +13,18 @@ import type { EelExpressionValue } from "ts-fusion-parser/out/fusion/nodes/EelEx
 import type { ObjectPath } from "ts-fusion-parser/out/fusion/nodes/ObjectPath"
 import type { Comment } from "ts-fusion-parser/out/common/Comment"
 import type { AssignedObjectPath } from "ts-fusion-parser/out/fusion/nodes/AssignedObjectPath"
-import { concat, group, hardline, ifBreak, indent, join, line, mapDoc, stripTrailingHardline } from "./docBuilders"
+import {
+  concat,
+  group,
+  hardline,
+  ifBreak,
+  indent,
+  join,
+  line,
+  mapDoc,
+  softline,
+  stripTrailingHardline
+} from "./docBuilders"
 
 type FusionPrinterContext = {
   sourceText: string
@@ -364,40 +375,60 @@ function formatEelExpression(value: EelExpressionValue, context: FusionPrinterCo
   const logicalParts = splitLogicalExpression(normalized)
   const hasLogicalOperators = logicalParts.some((part) => part === "||" || part === "&&")
   const shouldMultiline = normalized.includes("\n") || normalized.length + (baseColumn ?? 0) > context.lineWidth
+  const firstFunctionCall = parseFunctionCall(logicalParts[0] ?? normalized)
+  const shouldBlockWrap = Boolean(
+    hasLogicalOperators && shouldMultiline && firstFunctionCall && firstFunctionCall.args.length > 2
+  )
 
   if (hasLogicalOperators) {
     const lineIndentation = getLineIndentation(value, context) ?? 0
     const continuationPadding = Math.max(0, (baseColumn ?? lineIndentation) - lineIndentation + context.tabWidth * 2)
     const continuationIndent = continuationPadding > 0 ? ifBreak(" ".repeat(continuationPadding), "") : ""
+    const blockOperatorIndent = " ".repeat(context.tabWidth)
     const parts: Doc[] = []
     for (let index = 0; index < logicalParts.length; index += 1) {
       const part = logicalParts[index] ?? ""
 
       if (index === 0) {
-        parts.push(part)
+        parts.push(formatEelSegment(part, context, baseColumn))
         continue
       }
 
       const isOperator = part === "||" || part === "&&"
       if (isOperator) {
         const next = logicalParts[index + 1] ?? ""
-        parts.push(line, continuationIndent, part, " ", next)
-        index += 1
+        parts.push(line, shouldBlockWrap ? blockOperatorIndent : continuationIndent, part)
+        if (next) {
+          parts.push(" ", formatEelSegment(next, context, baseColumn))
+          index += 1
+        }
       } else {
-        parts.push(line, continuationIndent, part)
+        parts.push(
+          line,
+          shouldBlockWrap ? blockOperatorIndent : continuationIndent,
+          formatEelSegment(part, context, baseColumn)
+        )
       }
     }
 
-    return concat(["${", group(concat(parts)), "}"])
+    const logicalDoc = group(concat(parts))
+    if (shouldBlockWrap) {
+      const blockIndent = " ".repeat(context.tabWidth)
+      return concat(["${", hardline, blockIndent, indent(logicalDoc), hardline, "}"])
+    }
+    return concat(["${", logicalDoc, "}"])
   }
 
   if (shouldMultiline) {
     const continuationPadding = Math.max(0, context.tabWidth)
     const continuationIndent = continuationPadding > 0 ? " ".repeat(continuationPadding) : ""
-    return concat(["${", hardline, continuationIndent, normalized, hardline, "}"])
+    const multilineDoc = continuationIndent
+      ? concat([continuationIndent, formatEelSegment(normalized, context, baseColumn)])
+      : formatEelSegment(normalized, context, baseColumn)
+    return concat(["${", hardline, multilineDoc, hardline, "}"])
   }
 
-  return concat(["${", normalized, "}"])
+  return concat(["${", formatEelSegment(normalized, context, baseColumn), "}"])
 }
 
 function formatAssignedObjectPath(path: AssignedObjectPath | undefined): string {
@@ -621,6 +652,7 @@ function splitLogicalExpression(expression: string): string[] {
   let buffer = ""
   let inString: "'" | '"' | null = null
   let escaped = false
+  let depth = 0
 
   for (let index = 0; index < expression.length; index += 1) {
     const char = expression[index] ?? ""
@@ -650,7 +682,21 @@ function splitLogicalExpression(expression: string): string[] {
       continue
     }
 
-    const isLogicalOperator = !inString && (nextTwo === "&&" || nextTwo === "||")
+    const isOpening = !inString && (char === "(" || char === "[" || char === "{")
+    const isClosing = !inString && (char === ")" || char === "]" || char === "}")
+    if (isOpening) {
+      depth += 1
+      buffer += char
+      continue
+    }
+
+    if (isClosing) {
+      depth = Math.max(0, depth - 1)
+      buffer += char
+      continue
+    }
+
+    const isLogicalOperator = !inString && depth === 0 && (nextTwo === "&&" || nextTwo === "||")
     if (isLogicalOperator) {
       if (buffer.trim()) {
         parts.push(buffer.trim())
@@ -669,6 +715,183 @@ function splitLogicalExpression(expression: string): string[] {
   }
 
   return parts
+}
+
+function formatEelSegment(segment: string, context: FusionPrinterContext, baseColumn?: number): Doc {
+  const functionCallDoc = formatFunctionCall(segment, context, baseColumn)
+  if (functionCallDoc) {
+    return functionCallDoc
+  }
+
+  return segment
+}
+
+type ParsedFunctionCall = {
+  callee: string
+  args: string[]
+  suffix: string
+}
+
+function formatFunctionCall(segment: string, context: FusionPrinterContext, baseColumn?: number): Doc | null {
+  const parsed = parseFunctionCall(segment)
+  if (!parsed || parsed.args.length <= 1) {
+    return null
+  }
+
+  const availableWidth = Math.max(0, context.lineWidth - (baseColumn ?? 0))
+  const shouldSplitArguments =
+    parsed.args.length > 2 ||
+    segment.length + (baseColumn ?? 0) > context.lineWidth ||
+    parsed.args.some((arg) => arg.length >= availableWidth)
+
+  if (!shouldSplitArguments) {
+    return null
+  }
+
+  const argsDoc = join(concat([",", line]), parsed.args)
+  const callDoc = group(concat([parsed.callee, "(", indent(concat([softline, argsDoc])), softline, ")"]))
+
+  if (parsed.suffix) {
+    return concat([callDoc, " ", parsed.suffix])
+  }
+
+  return callDoc
+}
+
+function parseFunctionCall(segment: string): ParsedFunctionCall | null {
+  let inString: "'" | '"' | null = null
+  let escaped = false
+  let depth = 0
+  let openIndex = -1
+  let closeIndex = -1
+
+  for (let index = 0; index < segment.length; index += 1) {
+    const char = segment[index] ?? ""
+
+    if (escaped) {
+      escaped = false
+      continue
+    }
+
+    if (char === "\\" && inString) {
+      escaped = true
+      continue
+    }
+
+    if (char === inString) {
+      inString = null
+      continue
+    }
+
+    if (char === "'" || char === '"') {
+      inString = char
+      continue
+    }
+
+    if (char === "(") {
+      if (depth === 0) {
+        openIndex = index
+      }
+      depth += 1
+      continue
+    }
+
+    if (char === ")" && depth > 0) {
+      depth -= 1
+      if (depth === 0) {
+        closeIndex = index
+        break
+      }
+    }
+  }
+
+  if (openIndex <= 0 || closeIndex < 0) {
+    return null
+  }
+
+  const callee = segment.slice(0, openIndex).trim()
+  if (!callee || /\s/.test(segment.slice(callee.length, openIndex))) {
+    return null
+  }
+
+  if (!/^[\w$.]+$/.test(callee)) {
+    return null
+  }
+
+  const argsText = segment.slice(openIndex + 1, closeIndex)
+  const args = splitFunctionArguments(argsText)
+  if (args.length === 0) {
+    return null
+  }
+
+  const suffix = segment.slice(closeIndex + 1).trim()
+  return { callee, args, suffix }
+}
+
+function splitFunctionArguments(value: string): string[] {
+  const args: string[] = []
+  let buffer = ""
+  let depth = 0
+  let inString: "'" | '"' | null = null
+  let escaped = false
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index] ?? ""
+
+    if (escaped) {
+      buffer += char
+      escaped = false
+      continue
+    }
+
+    if (char === "\\" && inString) {
+      buffer += char
+      escaped = true
+      continue
+    }
+
+    if (char === inString) {
+      buffer += char
+      inString = null
+      continue
+    }
+
+    if (char === "'" || char === '"') {
+      buffer += char
+      inString = char
+      continue
+    }
+
+    if (char === "(" || char === "[" || char === "{") {
+      depth += 1
+      buffer += char
+      continue
+    }
+
+    if ((char === ")" || char === "]" || char === "}") && depth > 0) {
+      depth -= 1
+      buffer += char
+      continue
+    }
+
+    if (char === "," && depth === 0) {
+      const trimmed = buffer.trim()
+      if (trimmed) {
+        args.push(trimmed)
+      }
+      buffer = ""
+      continue
+    }
+
+    buffer += char
+  }
+
+  const trimmed = buffer.trim()
+  if (trimmed) {
+    args.push(trimmed)
+  }
+
+  return args
 }
 
 function getEelExpressionBaseColumn(value: EelExpressionValue, context: FusionPrinterContext): number | undefined {
