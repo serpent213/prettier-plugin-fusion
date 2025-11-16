@@ -1,6 +1,7 @@
 # Prettier plugin for Neos CMS Fusion/AFX files
 
 _ALPHA SOFTWARE – HANDLE WITH CARE!_
+
 _OUTPUT FORMAT NOT STABLE YET!_
 
 This is a Prettier plugin that understands [Neos Fusion/AFX](https://docs.neos.io/guide/rendering/fusion) syntax through
