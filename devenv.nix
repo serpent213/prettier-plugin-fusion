@@ -7,8 +7,7 @@
 {
   # https://devenv.sh/packages/
   packages = with pkgs; [
-    # nodePackages.prettier
-    # nodePackages.prettier-plugin-organize-imports
+    nodePackages.ts-node
   ];
 
   # https://devenv.sh/languages/

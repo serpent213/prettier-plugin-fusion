@@ -1,6 +1,7 @@
 # Prettier plugin for Neos CMS Fusion/AFX files
 
 _ALPHA SOFTWARE – HANDLE WITH CARE!_
+_OUTPUT FORMAT NOT STABLE YET!_
 
 This is a Prettier plugin that understands [Neos Fusion/AFX](https://docs.neos.io/guide/rendering/fusion) syntax through
 the [`ts-fusion-parser`](https://jsr.io/@sjs/ts-fusion-parser). The parser is production proven (it powers the
@@ -46,6 +47,14 @@ options that mirror the `ts-fusion-parser` configuration:
 | `fusionLineWidth`                       | `undefined` | Optional override that controls when embedded DSL blocks expand to multiple lines.                       |
 | `fusionEmbedEelParser`                  | `false`     | Collapses whitespace inside embedded EEL expressions for a JS-like look.                                 |
 
+## Funktionsweise
+
+- **Fusion**: The plugin registers a `fusion` parser backed by `ts-fusion-parser`, which returns a strongly typed AST of statements, object paths, blocks, and comments. The printer in `src/printer/index.ts` walks that AST and rebuilds it following an algorithm.
+
+- **AFX/HTML**: When a DSL expression is marked as `afx`, the `embed` hook normalises leading/trailing whitespace, masks embedded Eel placeholders, and lets Prettier’s `html` parser format the inner markup. The result is restored and wrapped back into the ``afx`...` `` fence.
+
+- **Eel**: Inline `${...}` expressions are normalised to a single-space style (`a && b`), optionally collating whitespace via `fusionEmbedEelParser`. Logical operators trigger multi-line grouping with continuation indent, while shorter expressions stay inline.
+
 ## Development
 
 ```
@@ -60,7 +69,7 @@ latter acts as the golden copy for regression testing.
 Need to inspect the parser output for a particular file? Run the helper script:
 
 ```
-tsx scripts/inspect-ast.ts fixtures/fusion/Card/input.fusion
+ts-node scripts/inspect-ast.ts fixtures/fusion/Card/input.fusion
 ```
 
 `src/index.ts` wires up Prettier with the `ts-fusion-parser`, while `src/printer/` hosts the printer logic and doc

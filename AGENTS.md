@@ -8,9 +8,10 @@
 
 - `pnpm build:lib` – transpiles TypeScript through Rollup+@rollup/plugin-typescript into `dist/`.
 - `pnpm test:lib` – runs the build then executes Vitest across fixture-driven suites.
+- `vitest run -t AssetList` - run a single test
 - `pnpm write` – rebuilds and rewrites `fixtures/` using the local plugin to refresh goldens.
 - `pnpm repl` / `pnpm repl:write` – formats `*.repl.js` playground files with the built plugin.
-- `tsx scripts/inspect-ast.ts fixtures/fusion/Card/input.fusion` – dumps the parser AST to inspect weird nodes before changing the printer logic.
+- `ts-node scripts/inspect-ast.ts fixtures/fusion/Card/input.fusion` – dumps the parser AST to inspect weird nodes before changing the printer logic.
 
 ## Coding Style & Naming Conventions
 
