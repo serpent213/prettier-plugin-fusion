@@ -7,7 +7,7 @@ prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
       renderer = afx`
         <div class="teaser" @if={props.items}>
           <Neos.Fusion:Loop items={props.items}>
-        <li>{item}</li>
+            <li>{item}</li>
           </Neos.Fusion:Loop>
         </div>
       `

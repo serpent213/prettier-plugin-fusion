@@ -3,7 +3,7 @@ import { ObjectTreeParser } from "ts-fusion-parser"
 import type { FusionParserOptions } from "ts-fusion-parser"
 import type { AfxParserOptions } from "ts-fusion-parser/out/dsl/afx/parser"
 import type { EelParserOptions } from "ts-fusion-parser/out/dsl/eel/parser"
-import { printFusionAst } from "./printer"
+import { embedFusionAst, printFusionAst } from "./printer"
 
 const FUSION_AST_FORMAT = "fusion-ast"
 const OPTION_CATEGORY = "Fusion parser"
@@ -186,6 +186,9 @@ export const printers: Record<typeof FUSION_AST_FORMAT, Printer> = {
   [FUSION_AST_FORMAT]: {
     print(path: AstPath, options) {
       return printFusionAst(path, options)
+    },
+    embed(path, options) {
+      return embedFusionAst(path, options)
     }
   }
 }

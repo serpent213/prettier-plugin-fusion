@@ -26,36 +26,33 @@ exports[`Fusion > Card 1`] = `
   class = null
 
   renderer = afx\`
-    <div
-        class={"block shadow-lg bg-white" + props.class}>
-        <a href={props.uri}>
-            <img
-                class="w-full"
-                src={props.imageUri || StaticResource.uri('Neos.Neos', 'Public/Images/dummy-image.svg')}
-                alt=""
-            />
-        </a>
+    <div class={"block shadow-lg bg-white" + props.class}>
+      <a href={props.uri}>
+        <img
+          class="w-full"
+          src={props.imageUri || StaticResource.uri('Neos.Neos', 'Public/Images/dummy-image.svg')}
+          alt=""
+        />
+      </a>
 
-        <div class="mt-5 ml-8 italic text-sm">
-            <time datetime={Date.format(props.date, 'Y-m-d')} @if={props.date}>
-                {Date.formatCldr(props.date, 'd. MMMM y')}
-            </time>
-        </div>
-        <div class="p-8 pt-3">
-            <h2 class="mb-2 text-xl font-medium leading-tight">
-                {props.title}
-            </h2>
-            <p class="mb-4 text-base">
-                {props.content}
-            </p>
-            <p class="pb-3 italic text-sm" @if={props.authorName}>
-                {I18n.translate('cards.authorPublishedBy', 'Published by {authorName}', { authorName: props.authorName }, 'Presentation.Cards:cards', 'Neos.Demo')}
-            </p>
-            <a href={props.uri}
-                class="inline-block bg-light px-6 pt-2.5 pb-2 text-xs font-medium uppercase leading-normal text-white shadow-md hover:bg-light focus:bg-light active:bg-light">
-                {I18n.translate('Neos.Demo:Presentation.Cards:cards.moreButton')}
-            </a>
-        </div>
+      <div class="mt-5 ml-8 italic text-sm">
+        <time datetime={Date.format(props.date, 'Y-m-d')} @if={props.date}>
+          {Date.formatCldr(props.date, 'd. MMMM y')}
+        </time>
+      </div>
+      <div class="p-8 pt-3">
+        <h2 class="mb-2 text-xl font-medium leading-tight">{props.title}</h2>
+        <p class="mb-4 text-base">{props.content}</p>
+        <p class="pb-3 italic text-sm" @if={props.authorName}>
+          {I18n.translate('cards.authorPublishedBy', 'Published by {authorName}', { authorName: props.authorName }, 'Presentation.Cards:cards', 'Neos.Demo')}
+        </p>
+        <a
+          href={props.uri}
+          class="inline-block bg-light px-6 pt-2.5 pb-2 text-xs font-medium uppercase leading-normal text-white shadow-md hover:bg-light focus:bg-light active:bg-light"
+        >
+          {I18n.translate('Neos.Demo:Presentation.Cards:cards.moreButton')}
+        </a>
+      </div>
     </div>
   \`
 }
@@ -78,10 +75,8 @@ exports[`Fusion > Comments 1`] = `
   }
 
   renderer = afx\`
-            <!-- Template hint -->
-    <div>
-        {props.title}
-    </div>
+    <!-- Template hint -->
+    <div>{props.title}</div>
   \`
 }
 "
@@ -97,7 +92,7 @@ exports[`Fusion > IncludesAndCopies 1`] = `
       renderer = afx\`
         <div class="teaser" @if={props.items}>
           <Neos.Fusion:Loop items={props.items}>
-        <li>{item}</li>
+            <li>{item}</li>
           </Neos.Fusion:Loop>
         </div>
       \`
@@ -143,13 +138,17 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
     process {
       content = afx\`
         <fieldset class="space-y-6 mb-8 max-w-[300px] [&_label]:sr-only">
-            <Neos.Fusion.Form:FieldContainer field.name="username" label="Username">
-                <Neos.Fusion.Form:Input attributes.required={true} attributes.placeholder="Username" attributes.pattern="[a-z0-9]+" />
-                <small>(lowercase letters and numbers only)</small>
-            </Neos.Fusion.Form:FieldContainer>
-            <Neos.Fusion.Form:FieldContainer field.name="password" label="Password">
-                <Neos.Fusion.Form:Password attributes.required={true} attributes.placeholder="Password" />
-            </Neos.Fusion.Form:FieldContainer>
+          <Neos.Fusion.Form:FieldContainer field.name="username" label="Username">
+            <Neos.Fusion.Form:Input
+              attributes.required={true}
+              attributes.placeholder="Username"
+              attributes.pattern="[a-z0-9]+"
+            />
+            <small>(lowercase letters and numbers only)</small>
+          </Neos.Fusion.Form:FieldContainer>
+          <Neos.Fusion.Form:FieldContainer field.name="password" label="Password">
+            <Neos.Fusion.Form:Password attributes.required={true} attributes.placeholder="Password" />
+          </Neos.Fusion.Form:FieldContainer>
         </fieldset>
       \`
 
@@ -240,13 +239,13 @@ exports[`Fusion > Slider 1`] = `
 
     content = afx\`
       <div class="splide__track">
-          <ul class="splide__list" @if={props._hasItems && !props.content}>
-              <Neos.Fusion:Loop items={props.items}>
-                  <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />
-              </Neos.Fusion:Loop>
-          </ul>
-          <!-- content is used as entry for contentcollections -->
-          {props.content}
+        <ul class="splide__list" @if={props._hasItems && !props.content}>
+          <Neos.Fusion:Loop items={props.items}>
+            <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />
+          </Neos.Fusion:Loop>
+        </ul>
+        <!-- content is used as entry for contentcollections -->
+        {props.content}
       </div>
     \`
   }
@@ -278,7 +277,9 @@ prototype(Neos.Demo:Content.TextWithImage) < prototype(Neos.Neos:ContentComponen
 
   renderDummyImage = \${renderingMode.isEdit || renderingMode.isPreview}
 
-  renderer = afx\`<Neos.Demo:Presentation.TextWithImage {...props} />\`
+  renderer = afx\`
+    <Neos.Demo:Presentation.TextWithImage {...props} />
+  \`
 }
 "
 `;

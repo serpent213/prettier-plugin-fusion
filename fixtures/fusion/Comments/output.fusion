@@ -13,9 +13,7 @@ prototype(Vendor.Site:Blog.CardList) < prototype(Neos.Fusion:Component) {
   }
 
   renderer = afx`
-            <!-- Template hint -->
-    <div>
-        {props.title}
-    </div>
+    <!-- Template hint -->
+    <div>{props.title}</div>
   `
 }

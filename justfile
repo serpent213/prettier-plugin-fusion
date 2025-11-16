@@ -12,7 +12,7 @@ test: build
 
 # Update Vitest snapshots
 update-snapshots: build
-    vitest --update --reporter=verbose
+    vitest run --update --reporter=verbose
 
 # Format fixtures directory with plugin
 format-fixtures: build

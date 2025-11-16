@@ -42,13 +42,13 @@ prototype(Neos.Demo:Presentation.Slider) < prototype(Neos.Fusion:Component) {
 
     content = afx`
       <div class="splide__track">
-          <ul class="splide__list" @if={props._hasItems && !props.content}>
-              <Neos.Fusion:Loop items={props.items}>
-                  <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />
-              </Neos.Fusion:Loop>
-          </ul>
-          <!-- content is used as entry for contentcollections -->
-          {props.content}
+        <ul class="splide__list" @if={props._hasItems && !props.content}>
+          <Neos.Fusion:Loop items={props.items}>
+            <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />
+          </Neos.Fusion:Loop>
+        </ul>
+        <!-- content is used as entry for contentcollections -->
+        {props.content}
       </div>
     `
   }

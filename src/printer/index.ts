@@ -1,4 +1,4 @@
-import type { AstPath, Doc, ParserOptions } from "prettier"
+import type { AstPath, Doc, Options, ParserOptions, Printer } from "prettier"
 import type { FusionFile } from "ts-fusion-parser/out/fusion/nodes/FusionFile"
 import type { StatementList } from "ts-fusion-parser/out/fusion/nodes/StatementList"
 import type { ObjectStatement } from "ts-fusion-parser/out/fusion/nodes/ObjectStatement"
@@ -13,7 +13,7 @@ import type { EelExpressionValue } from "ts-fusion-parser/out/fusion/nodes/EelEx
 import type { ObjectPath } from "ts-fusion-parser/out/fusion/nodes/ObjectPath"
 import type { Comment } from "ts-fusion-parser/out/common/Comment"
 import type { AssignedObjectPath } from "ts-fusion-parser/out/fusion/nodes/AssignedObjectPath"
-import { concat, group, hardline, indent, join } from "./docBuilders"
+import { concat, group, hardline, indent, join, mapDoc, stripTrailingHardline } from "./docBuilders"
 
 type FusionPrinterContext = {
   sourceText: string
@@ -23,6 +23,72 @@ type FusionPrinterContext = {
 }
 
 type NodeWithPosition = { position?: { begin?: number; end?: number } }
+type AfxDslExpressionValue = DslExpressionValue & { __formattedAfxDoc?: Doc }
+
+const AFX_EEL_PLACEHOLDER_PREFIX = "__FUSION_AFX_EEL_"
+const AFX_EEL_PLACEHOLDER_PATTERN = /(['"])?__FUSION_AFX_EEL_(\d+)__\1?/g
+
+function docContainsLineBreak(doc: Doc): boolean {
+  if (typeof doc === "string") {
+    return false
+  }
+
+  if (Array.isArray(doc)) {
+    return doc.some(docContainsLineBreak)
+  }
+
+  if (typeof doc === "object" && doc !== null) {
+    // Check for any line break or indent which suggests multi-line formatting
+    if ("type" in doc) {
+      if (doc.type === "line" || doc.type === "indent" || doc.type === "line-suffix-boundary") {
+        return true
+      }
+    }
+    return Object.values(doc).some((value) => docContainsLineBreak(value as Doc))
+  }
+
+  return false
+}
+
+export const embedFusionAst: NonNullable<Printer["embed"]> = (path: AstPath, options: Options) => {
+  const node = path.getValue()
+
+  if (!isDslExpressionValue(node) || !isAfxExpression(node)) {
+    return null
+  }
+
+  const lineWidth = resolveLineWidth(options)
+
+  return async (textToDoc) => {
+    const content = getNormalizedAfxContent(node)
+
+    if (!content) {
+      const emptyDoc = concat([node.identifier, "`", "`"])
+      setAfxDoc(node, emptyDoc)
+      return emptyDoc
+    }
+
+    const { sanitized, placeholders } = maskEelExpressions(content)
+    const htmlDoc = await textToDoc(sanitized, {
+      parser: "html",
+      printWidth: options.printWidth,
+      tabWidth: options.tabWidth,
+      useTabs: options.useTabs,
+      singleAttributePerLine: false
+    })
+    const restored = restoreEelExpressions(stripTrailingHardline(htmlDoc), placeholders)
+
+    // Check if the formatted HTML contains line breaks
+    const shouldExpand = docContainsLineBreak(restored)
+
+    const wrapped = shouldExpand
+      ? concat([node.identifier, "`", indent(concat([hardline, restored])), hardline, "`"])
+      : concat([node.identifier, "`", restored, "`"])
+
+    setAfxDoc(node, wrapped)
+    return wrapped
+  }
+}
 
 export function printFusionAst(path: AstPath, options: ParserOptions): Doc {
   const node = path.getValue()
@@ -41,20 +107,31 @@ export function printFusionAst(path: AstPath, options: ParserOptions): Doc {
     return printStatementList(node, context)
   }
 
+  if (isObjectStatement(node)) {
+    return printObjectStatement(node, context)
+  }
+
+  if (isValueAssignment(node)) {
+    const valueDoc = node.pathValue ? path.call((p) => printFusionAst(p, options), "pathValue") : ""
+    return concat([" = ", valueDoc])
+  }
+
+  if (isDslExpressionValue(node)) {
+    return formatDslExpression(node, context)
+  }
+
+  if (isEelExpressionValue(node)) {
+    return formatEelExpression(node, context)
+  }
+
   return ""
 }
 
 function createContext(options: ParserOptions): FusionPrinterContext {
   const source = typeof options.originalText === "string" ? options.originalText : ""
-  const lineWidth =
-    typeof options.fusionLineWidth === "number"
-      ? options.fusionLineWidth
-      : typeof options.printWidth === "number"
-        ? options.printWidth
-        : 80
   return {
     sourceText: source,
-    lineWidth,
+    lineWidth: resolveLineWidth(options),
     embedEelParser: options.fusionEmbedEelParser ?? false,
     useSingleQuote: options.singleQuote === true
   }
@@ -147,9 +224,10 @@ function printObjectStatement(statement: ObjectStatement, context: FusionPrinter
   return docs.length > 0 ? group(concat(docs)) : ""
 }
 
-function printOperation(operation: AbstractOperation, context: FusionPrinterContext): Doc {
+function printOperation(operation: AbstractOperation, context: FusionPrinterContext, valuePrinter?: () => Doc): Doc {
   if (isValueAssignment(operation)) {
-    return concat([" = ", formatPathValue(operation.pathValue, context)])
+    const valueDoc = valuePrinter ? valuePrinter() : formatPathValue(operation.pathValue, context)
+    return concat([" = ", valueDoc])
   }
 
   if (isValueCopy(operation)) {
@@ -226,6 +304,11 @@ function formatPathValue(pathValue: AbstractPathValue<unknown>, context: FusionP
 }
 
 function formatDslExpression(value: DslExpressionValue, context: FusionPrinterContext): Doc {
+  const embeddedAfxDoc = getAfxDoc(value)
+  if (embeddedAfxDoc && isAfxExpression(value)) {
+    return embeddedAfxDoc
+  }
+
   const raw = (value.value ?? "").replace(/\r\n/g, "\n")
   const trimmedEnd = raw.replace(/\s+$/, "")
   const shouldExpand = trimmedEnd.includes("\n") || trimmedEnd.length > context.lineWidth
@@ -393,6 +476,18 @@ function isValueUnset(operation: AbstractOperation): operation is ValueUnset {
   return operation.constructor?.name === "ValueUnset"
 }
 
+function isDslExpressionValue(value: unknown): value is DslExpressionValue {
+  return Boolean(value && value.constructor && value.constructor.name === "DslExpressionValue")
+}
+
+function isEelExpressionValue(value: unknown): value is EelExpressionValue {
+  return Boolean(value && value.constructor && value.constructor.name === "EelExpressionValue")
+}
+
+function isAfxExpression(value: DslExpressionValue): boolean {
+  return (value.identifier ?? "").toLowerCase() === "afx"
+}
+
 function hasNonEmptyBlock(statement: unknown): boolean {
   if (!isObjectStatement(statement)) {
     return false
@@ -404,4 +499,91 @@ function hasNonEmptyBlock(statement: unknown): boolean {
   }
 
   return (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
+}
+
+function resolveLineWidth(options: { fusionLineWidth?: number; printWidth?: number }): number {
+  if (typeof options.fusionLineWidth === "number") {
+    return options.fusionLineWidth
+  }
+
+  if (typeof options.printWidth === "number") {
+    return options.printWidth
+  }
+
+  return 80
+}
+
+function getNormalizedAfxContent(value: DslExpressionValue): string {
+  const raw = (value.value ?? "").replace(/\r\n/g, "\n")
+  const normalized = normalizeMultilineText(raw)
+  return normalized.join("\n")
+}
+
+function maskEelExpressions(content: string): { sanitized: string; placeholders: string[] } {
+  const placeholders: string[] = []
+  let sanitized = ""
+  let depth = 0
+  let start = -1
+
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index] ?? ""
+
+    if (char === "{") {
+      if (depth === 0) {
+        start = index
+      }
+      depth += 1
+      continue
+    }
+
+    if (char === "}" && depth > 0) {
+      depth -= 1
+      if (depth === 0 && start >= 0) {
+        const expression = content.slice(start, index + 1)
+        const placeholder = `${AFX_EEL_PLACEHOLDER_PREFIX}${placeholders.length}__`
+        placeholders.push(expression)
+        sanitized += placeholder
+        start = -1
+        continue
+      }
+    }
+
+    if (depth === 0) {
+      sanitized += char
+    }
+  }
+
+  if (depth > 0 && start >= 0) {
+    sanitized += content.slice(start)
+  }
+
+  return { sanitized, placeholders }
+}
+
+function restoreEelExpressions(doc: Doc, placeholders: string[]): Doc {
+  if (placeholders.length === 0) {
+    return doc
+  }
+
+  return mapDoc(doc, (part) => {
+    if (typeof part !== "string") {
+      return part
+    }
+
+    return part.replace(AFX_EEL_PLACEHOLDER_PATTERN, (match, quote, index) => {
+      const replacement = placeholders[Number(index)] ?? match
+      if (quote) {
+        return replacement
+      }
+      return replacement
+    })
+  })
+}
+
+function setAfxDoc(value: DslExpressionValue, doc: Doc): void {
+  ;(value as AfxDslExpressionValue).__formattedAfxDoc = doc
+}
+
+function getAfxDoc(value: DslExpressionValue): Doc | undefined {
+  return (value as AfxDslExpressionValue).__formattedAfxDoc
 }
