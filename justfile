@@ -12,15 +12,15 @@ test: build
 
 # Format fixtures directory with plugin
 format-fixtures: build
-    prettier --plugin=dist/index.js --write ./fixtures --ignore-path=.prettierignore
+    prettier --plugin=dist/index.js --write ./fixtures
 
 # Format REPL files (check only)
 # format-repl: build
-#     prettier --plugin=dist/index.js *.repl.js --ignore-path=.prettierignore
+#     prettier --plugin=dist/index.js *.repl.js
 
 # Format REPL files (write changes)
 # format-repl-write: build
-#     prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore
+#     prettier --plugin=dist/index.js --write *.repl.js
 
 # Format all source files (TypeScript/JavaScript)
 format-src:
@@ -36,8 +36,8 @@ check:
 # Check all formatting (including fixtures and REPL)
 check-all: build
     prettier --check "{src,__tests__}/**/*.{ts,js,json}" "*.md"
-    prettier --plugin=dist/index.js --check ./fixtures --ignore-path=.prettierignore
-    # prettier --plugin=dist/index.js --check *.repl.js --ignore-path=.prettierignore
+    prettier --plugin=dist/index.js --check ./fixtures
+    # prettier --plugin=dist/index.js --check *.repl.js
 
 # Clean build artifacts
 clean:

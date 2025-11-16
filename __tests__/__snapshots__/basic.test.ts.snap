@@ -1,32 +1,275 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Fusion > Card 1`] = 
-`
-"prototype(Neos.Demo:Presentation.Cards.Card) < prototype(Neos.Fusion:Component) {\n    // This is used for the living styleguide (Monocle)\n    // Read more about this in the README.md\n    @styleguide {\n        props {\n            uri = 'https://example.com'\n            title = 'Card title'\n            content = 'Some quick example text to build on the card title and make up the bulk of the card\\'s content.'\n            date = ''\n            authorName = ''\n            imageUri = ''\n            class = ''\n        }\n    }\n\n    uri = null\n    imageUri = null\n    title = null\n    content = null\n    date = null\n    authorName = null\n\n    class = null\n\n    renderer = afx\`\n        <div\n            class={\"block shadow-lg bg-white\" + props.class}>\n            <a href={props.uri}>\n                <img\n                    class=\"w-full\"\n                    src={props.imageUri || StaticResource.uri('Neos.Neos', 'Public/Images/dummy-image.svg')}\n                    alt=\"\"\n                />\n            </a>\n\n            <div class=\"mt-5 ml-8 italic text-sm\">\n                <time datetime={Date.format(props.date, 'Y-m-d')} @if={props.date}>\n                    {Date.formatCldr(props.date, 'd. MMMM y')}\n                </time>\n            </div>\n            <div class=\"p-8 pt-3\">\n                <h2 class=\"mb-2 text-xl font-medium leading-tight\">\n                    {props.title}\n                </h2>\n                <p class=\"mb-4 text-base\">\n                    {props.content}\n                </p>\n                <p class=\"pb-3 italic text-sm\" @if={props.authorName}>\n                    {I18n.translate('cards.authorPublishedBy', 'Published by {authorName}', { authorName: props.authorName }, 'Presentation.Cards:cards', 'Neos.Demo')}\n                </p>\n                <a href={props.uri}\n                    class=\"inline-block bg-light px-6 pt-2.5 pb-2 text-xs font-medium uppercase leading-normal text-white shadow-md hover:bg-light focus:bg-light active:bg-light\">\n                    {I18n.translate('Neos.Demo:Presentation.Cards:cards.moreButton')}\n                </a>\n            </div>\n        </div>\n    \`\n}\n"
-`
+exports[`Fusion > Card 1`] = `
+"prototype(Neos.Demo:Presentation.Cards.Card) < prototype(Neos.Fusion:Component) {
+  // This is used for the living styleguide (Monocle)
+  // Read more about this in the README.md
+  @styleguide {
+    props {
+      uri = 'https://example.com'
+      title = 'Card title'
+      content = 'Some quick example text to build on the card title and make up the bulk of the card\\'s content.'
+      date = ''
+      authorName = ''
+      imageUri = ''
+      class = ''
+    }
+  }
 
-exports[`Fusion > Comments 1`] = 
-`
-"prototype(Vendor.Site:Blog.CardList) < prototype(Neos.Fusion:Component) {\n    # Photo article\n    photoArticle = 'photo'\n\n    // Link article - show link info\n    linkArticle {\n        renderer = 'link'\n    }\n\n    /* Circular mode (default) - use traditional properties */\n    circular {\n        condition = true\n    }\n\n    renderer = afx\`\n                <!-- Template hint -->\n        <div>\n            {props.title}\n        </div>\n    \`\n}\n"
-`
+  uri = null
+  imageUri = null
+  title = null
+  content = null
+  date = null
+  authorName = null
 
-exports[`Fusion > IncludesAndCopies 1`] = 
-`
-"prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {\n    @cache.mode = 'uncached'\n\n    renderer = Neos.Fusion:Case {\n        primary {\n            condition = ${q(node).is('[instanceof Vendor.Site:Document.Article]')}\n            renderer = afx\`\n                <div class=\"teaser\" @if={props.items}>\n                  <Neos.Fusion:Loop items={props.items}>\n                <li>{item}</li>\n                  </Neos.Fusion:Loop>\n                </div>\n            \`\n        }\n        fallback {\n            renderer < Neos.Fusion:Component\n        }\n    }\n    @process.trim = Neos.Fusion:Trim {\n        value = ${String.trim(value)}\n    }\n    @process.uppercase = Vendor.Site:Process.Uppercase {}\n}\n\nVendor.Site:Data.Feed {\n    @cache.entryIdentifier = 'feed-cache'\n    @apply.props = ${props}\n    headline = 'Latest News'\n    items < prototype(Vendor.Site:Data.ItemCollection)\n    teaserVariant >\n}\n"
-`
+  class = null
 
-exports[`Fusion > Registration 1`] = 
-`
-"##\n# \"Registration\" element based on Fusion.Form\n#\nprototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {\n    renderer = Neos.Fusion.Form:Runtime.RuntimeForm {\n        namespace = 'neos-demo-registration'\n        attributes {\n            id = ${'form-' + node.aggregateId}\n            action = ${'#' + this.id}\n        }\n\n        form.method = 'POST'\n\n        process {\n            content = afx\`\n                <fieldset class=\"space-y-6 mb-8 max-w-[300px] [&_label]:sr-only\">\n                    <Neos.Fusion.Form:FieldContainer field.name=\"username\" label=\"Username\">\n                        <Neos.Fusion.Form:Input attributes.required={true} attributes.placeholder=\"Username\" attributes.pattern=\"[a-z0-9]+\" />\n                        <small>(lowercase letters and numbers only)</small>\n                    </Neos.Fusion.Form:FieldContainer>\n                    <Neos.Fusion.Form:FieldContainer field.name=\"password\" label=\"Password\">\n                        <Neos.Fusion.Form:Password attributes.required={true} attributes.placeholder=\"Password\" />\n                    </Neos.Fusion.Form:FieldContainer>\n                </fieldset>\n            \`\n\n            schema {\n                username = ${Form.Schema.string().isRequired().validator('Neos\\Demo\\Form\\Runtime\\Validation\\Validator\\UsernameInUseValidator')}\n                password = ${Form.Schema.string().isRequired()}\n            }\n        }\n\n        action {\n            createBackendUser {\n                type = 'Neos.Demo.Form.Runtime:CreateUser'\n                options {\n                    username = ${data.username}\n                    password = ${data.password}\n                    // you can configure an array of Backend Roles to be added to this user\n                    roles = ${['Neos.Neos:Editor']}\n                    // this is basically for security reasons if someone\n                    // forgets to remove this functionality\n                    // you can configure a valid DateTime constructor format here\n                    expiry = '+1 week'\n                }\n                @position = 'start'\n            }\n            redirect {\n                type = 'Neos.Fusion.Form.Runtime:Redirect'\n                options.uri = Neos.Fusion:UriBuilder {\n                    package = 'Neos.Neos'\n                    controller = 'Login'\n                    action = 'index'\n                    additionalParams {\n                        username = ${data.username}\n                    }\n                }\n                @position = 'end'\n            }\n        }\n    }\n}\n"
-`
+  renderer = afx\`
+    <div
+        class={"block shadow-lg bg-white" + props.class}>
+        <a href={props.uri}>
+            <img
+                class="w-full"
+                src={props.imageUri || StaticResource.uri('Neos.Neos', 'Public/Images/dummy-image.svg')}
+                alt=""
+            />
+        </a>
 
-exports[`Fusion > Slider 1`] = 
-`
-"prototype(Neos.Demo:Presentation.Slider) < prototype(Neos.Fusion:Component) {\n    // This is used for the living styleguide (Monocle)\n    // Read more about this in the README.md\n    @styleguide.props.items = Neos.Fusion:Map {\n        items = ${Array.range(1, 10)}\n        itemRenderer = afx\`\n            <img class=\"w-full\" src={\"https://picsum.photos/800/400?random=\" + item} alt=\"placeholder image\" />\n        \`\n    }\n\n    tagName = 'section'\n    sliderIsDecoration = false\n    class = null\n    slideItemClass = 'flex flex-col items-center justify-center'\n\n    options = Neos.Fusion:DataStructure {\n        # The gap between slides. The CSS format is acceptable, such as 1em.\n        gap = 12\n    }\n\n    attributes = Neos.Fusion:DataStructure\n\n    i18n = Neos.Fusion:Map {\n        items = ${['prev', 'next', 'first', 'last', 'slideX', 'pageX', 'play', 'pause', 'carousel', 'select', 'slide', 'slideLabel', 'playVideo']}\n        keyRenderer = ${item}\n        itemRenderer = ${I18n.translate('Neos.Demo:Main:splide.' + item)}\n    }\n\n    _hasItems = ${Type.isArray(this.items) && Array.length(this.items)}\n    @if.hasItemsOrContent = ${this._hasItems || this.content}\n\n    renderer = Neos.Fusion:Tag {\n        tagName = ${props.tagName}\n        attributes {\n            x-data = 'slider'\n            data-splide = ${Json.stringify(Array.concat({i18n:props.i18n}, props.options))}\n            aria-label = ${props.label}\n            role = ${props.sliderIsDecoration ? 'group' : null}\n            class = ${Array.push('splide', props.class)}\n            @apply.attributes = ${props.attributes}\n        }\n        content = afx\`\n            <div class=\"splide__track\">\n                <ul class=\"splide__list\" @if={props._hasItems && !props.content}>\n                    <Neos.Fusion:Loop items={props.items}>\n                        <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />\n                    </Neos.Fusion:Loop>\n                </ul>\n                <!-- content is used as entry for contentcollections -->\n                {props.content}\n            </div>\n        \`\n    }\n}\n"
-`
+        <div class="mt-5 ml-8 italic text-sm">
+            <time datetime={Date.format(props.date, 'Y-m-d')} @if={props.date}>
+                {Date.formatCldr(props.date, 'd. MMMM y')}
+            </time>
+        </div>
+        <div class="p-8 pt-3">
+            <h2 class="mb-2 text-xl font-medium leading-tight">
+                {props.title}
+            </h2>
+            <p class="mb-4 text-base">
+                {props.content}
+            </p>
+            <p class="pb-3 italic text-sm" @if={props.authorName}>
+                {I18n.translate('cards.authorPublishedBy', 'Published by {authorName}', { authorName: props.authorName }, 'Presentation.Cards:cards', 'Neos.Demo')}
+            </p>
+            <a href={props.uri}
+                class="inline-block bg-light px-6 pt-2.5 pb-2 text-xs font-medium uppercase leading-normal text-white shadow-md hover:bg-light focus:bg-light active:bg-light">
+                {I18n.translate('Neos.Demo:Presentation.Cards:cards.moreButton')}
+            </a>
+        </div>
+    </div>
+  \`
+}
+"
+`;
 
-exports[`Fusion > TextWithImage 1`] = 
-`
-"##\n# \"Text\" element\n#\nprototype(Neos.Demo:Content.TextWithImage) < prototype(Neos.Neos:ContentComponent) {\n    text = Neos.Neos:Editable {\n        property = 'text'\n    }\n    src = Neos.Neos:ImageUri {\n        @if.hasAsset = ${this.asset}\n        asset = ${q(node).property('image')}\n        maximumWidth = 500\n    }\n    alt = ${q(node).property('alternativeText')}\n    title = ${q(node).property('title')}\n    hasCaption = ${q(node).property('hasCaption')}\n    caption = Neos.Neos:Editable {\n        property = 'caption'\n    }\n\n    renderDummyImage = ${renderingMode.isEdit || renderingMode.isPreview}\n\n    renderer = afx\`<Neos.Demo:Presentation.TextWithImage {...props} />\`\n}\n"
-`
+exports[`Fusion > Comments 1`] = `
+"prototype(Vendor.Site:Blog.CardList) < prototype(Neos.Fusion:Component) {
+  # Photo article
+  photoArticle = 'photo'
 
+  // Link article - show link info
+  linkArticle {
+    renderer = 'link'
+  }
+
+  /* Circular mode (default) - use traditional properties */
+  circular {
+    condition = true
+  }
+
+  renderer = afx\`
+            <!-- Template hint -->
+    <div>
+        {props.title}
+    </div>
+  \`
+}
+"
+`;
+
+exports[`Fusion > IncludesAndCopies 1`] = `
+"prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
+  @cache.mode = 'uncached'
+
+  renderer = Neos.Fusion:Case {
+    primary {
+      condition = \${q(node).is('[instanceof Vendor.Site:Document.Article]')}
+      renderer = afx\`
+        <div class="teaser" @if={props.items}>
+          <Neos.Fusion:Loop items={props.items}>
+        <li>{item}</li>
+          </Neos.Fusion:Loop>
+        </div>
+      \`
+    }
+    fallback {
+      renderer < Neos.Fusion:Component
+    }
+  }
+  @process.trim = Neos.Fusion:Trim {
+    value = \${String.trim(value)}
+  }
+  @process.uppercase = Vendor.Site:Process.Uppercase {
+  }
+}
+
+Vendor.Site:Data.Feed {
+  @cache.entryIdentifier = 'feed-cache'
+  @apply.props = \${props}
+  headline = 'Latest News'
+  items < prototype(Vendor.Site:Data.ItemCollection)
+  teaserVariant >
+}
+"
+`;
+
+exports[`Fusion > Registration 1`] = `
+"##
+# "Registration" element based on Fusion.Form
+#
+prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {
+  renderer = Neos.Fusion.Form:Runtime.RuntimeForm {
+    namespace = 'neos-demo-registration'
+    attributes {
+      id = \${'form-' + node.aggregateId}
+      action = \${'#' + this.id}
+    }
+
+    form.method = 'POST'
+
+    process {
+      content = afx\`
+        <fieldset class="space-y-6 mb-8 max-w-[300px] [&_label]:sr-only">
+            <Neos.Fusion.Form:FieldContainer field.name="username" label="Username">
+                <Neos.Fusion.Form:Input attributes.required={true} attributes.placeholder="Username" attributes.pattern="[a-z0-9]+" />
+                <small>(lowercase letters and numbers only)</small>
+            </Neos.Fusion.Form:FieldContainer>
+            <Neos.Fusion.Form:FieldContainer field.name="password" label="Password">
+                <Neos.Fusion.Form:Password attributes.required={true} attributes.placeholder="Password" />
+            </Neos.Fusion.Form:FieldContainer>
+        </fieldset>
+      \`
+
+      schema {
+        username = \${Form.Schema.string().isRequired().validator('Neos\\Demo\\Form\\Runtime\\Validation\\Validator\\UsernameInUseValidator')}
+        password = \${Form.Schema.string().isRequired()}
+      }
+    }
+
+    action {
+      createBackendUser {
+        type = 'Neos.Demo.Form.Runtime:CreateUser'
+        options {
+          username = \${data.username}
+          password = \${data.password}
+          // you can configure an array of Backend Roles to be added to this user
+          roles = \${['Neos.Neos:Editor']}
+          // this is basically for security reasons if someone
+          // forgets to remove this functionality
+          // you can configure a valid DateTime constructor format here
+          expiry = '+1 week'
+        }
+        @position = 'start'
+      }
+      redirect {
+        type = 'Neos.Fusion.Form.Runtime:Redirect'
+        options.uri = Neos.Fusion:UriBuilder {
+          package = 'Neos.Neos'
+          controller = 'Login'
+          action = 'index'
+          additionalParams {
+            username = \${data.username}
+          }
+        }
+        @position = 'end'
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`Fusion > Slider 1`] = `
+"prototype(Neos.Demo:Presentation.Slider) < prototype(Neos.Fusion:Component) {
+  // This is used for the living styleguide (Monocle)
+  // Read more about this in the README.md
+  @styleguide.props.items = Neos.Fusion:Map {
+    items = \${Array.range(1, 10)}
+    itemRenderer = afx\`
+      <img class="w-full" src={"https://picsum.photos/800/400?random=" + item} alt="placeholder image" />
+    \`
+  }
+
+  tagName = 'section'
+  sliderIsDecoration = false
+  class = null
+  slideItemClass = 'flex flex-col items-center justify-center'
+
+  options = Neos.Fusion:DataStructure {
+    # The gap between slides. The CSS format is acceptable, such as 1em.
+    gap = 12
+  }
+
+  attributes = Neos.Fusion:DataStructure
+
+  i18n = Neos.Fusion:Map {
+    items = \${['prev', 'next', 'first', 'last', 'slideX', 'pageX', 'play', 'pause', 'carousel', 'select', 'slide', 'slideLabel', 'playVideo']}
+    keyRenderer = \${item}
+    itemRenderer = \${I18n.translate('Neos.Demo:Main:splide.' + item)}
+  }
+
+  _hasItems = \${Type.isArray(this.items) && Array.length(this.items)}
+  @if.hasItemsOrContent = \${this._hasItems || this.content}
+
+  renderer = Neos.Fusion:Tag {
+    tagName = \${props.tagName}
+    attributes {
+      x-data = 'slider'
+      data-splide = \${Json.stringify(Array.concat({i18n:props.i18n}, props.options))}
+      aria-label = \${props.label}
+      role = \${props.sliderIsDecoration ? 'group' : null}
+      class = \${Array.push('splide', props.class)}
+      @apply.attributes = \${props.attributes}
+    }
+    content = afx\`
+      <div class="splide__track">
+          <ul class="splide__list" @if={props._hasItems && !props.content}>
+              <Neos.Fusion:Loop items={props.items}>
+                  <Neos.Demo:Presentation.Slider.Fragment.Item class={props.slideItemClass} content={item} />
+              </Neos.Fusion:Loop>
+          </ul>
+          <!-- content is used as entry for contentcollections -->
+          {props.content}
+      </div>
+    \`
+  }
+}
+"
+`;
+
+exports[`Fusion > TextWithImage 1`] = `
+"##
+# "Text" element
+#
+prototype(Neos.Demo:Content.TextWithImage) < prototype(Neos.Neos:ContentComponent) {
+  text = Neos.Neos:Editable {
+    property = 'text'
+  }
+  src = Neos.Neos:ImageUri {
+    @if.hasAsset = \${this.asset}
+    asset = \${q(node).property('image')}
+    maximumWidth = 500
+  }
+  alt = \${q(node).property('alternativeText')}
+  title = \${q(node).property('title')}
+  hasCaption = \${q(node).property('hasCaption')}
+  caption = Neos.Neos:Editable {
+    property = 'caption'
+  }
+
+  renderDummyImage = \${renderingMode.isEdit || renderingMode.isPreview}
+
+  renderer = afx\`<Neos.Demo:Presentation.TextWithImage {...props} />\`
+}
+"
+`;
