@@ -3,13 +3,13 @@ prototype(Neos.Demo:Presentation.Cards.Card) < prototype(Neos.Fusion:Component) 
   // Read more about this in the README.md
   @styleguide {
     props {
-      uri = 'https://example.com'
-      title = 'Card title'
-      content = 'Some quick example text to build on the card title and make up the bulk of the card\'s content.'
-      date = ''
-      authorName = ''
-      imageUri = ''
-      class = ''
+      uri = "https://example.com"
+      title = "Card title"
+      content = "Some quick example text to build on the card title and make up the bulk of the card's content."
+      date = ""
+      authorName = ""
+      imageUri = ""
+      class = ""
     }
   }
 

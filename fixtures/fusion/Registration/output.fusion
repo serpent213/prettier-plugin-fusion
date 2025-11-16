@@ -3,13 +3,13 @@
 #
 prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {
   renderer = Neos.Fusion.Form:Runtime.RuntimeForm {
-    namespace = 'neos-demo-registration'
+    namespace = "neos-demo-registration"
     attributes {
       id = ${'form-' + node.aggregateId}
       action = ${'#' + this.id}
     }
 
-    form.method = 'POST'
+    form.method = "POST"
 
     process {
       content = afx`
@@ -32,7 +32,7 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
 
     action {
       createBackendUser {
-        type = 'Neos.Demo.Form.Runtime:CreateUser'
+        type = "Neos.Demo.Form.Runtime:CreateUser"
         options {
           username = ${data.username}
           password = ${data.password}
@@ -41,21 +41,24 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
           // this is basically for security reasons if someone
           // forgets to remove this functionality
           // you can configure a valid DateTime constructor format here
-          expiry = '+1 week'
+          expiry = "+1 week"
         }
-        @position = 'start'
+
+        @position = "start"
       }
+
       redirect {
-        type = 'Neos.Fusion.Form.Runtime:Redirect'
+        type = "Neos.Fusion.Form.Runtime:Redirect"
         options.uri = Neos.Fusion:UriBuilder {
-          package = 'Neos.Neos'
-          controller = 'Login'
-          action = 'index'
+          package = "Neos.Neos"
+          controller = "Login"
+          action = "index"
           additionalParams {
             username = ${data.username}
           }
         }
-        @position = 'end'
+
+        @position = "end"
       }
     }
   }

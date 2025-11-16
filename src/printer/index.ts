@@ -19,6 +19,7 @@ type FusionPrinterContext = {
   sourceText: string
   lineWidth: number
   embedEelParser: boolean
+  useSingleQuote: boolean
 }
 
 type NodeWithPosition = { position?: { begin?: number; end?: number } }
@@ -54,7 +55,8 @@ function createContext(options: ParserOptions): FusionPrinterContext {
   return {
     sourceText: source,
     lineWidth,
-    embedEelParser: options.fusionEmbedEelParser ?? false
+    embedEelParser: options.fusionEmbedEelParser ?? false,
+    useSingleQuote: options.singleQuote === true
   }
 }
 
@@ -99,7 +101,7 @@ function printStatementList(list: StatementList | undefined, context: FusionPrin
 
     if (next) {
       parts.push(hardline)
-      if (hasOriginalBlankLine(current, next, context)) {
+      if (hasOriginalBlankLine(current, next, context) || hasNonEmptyBlock(current)) {
         parts.push(hardline)
       }
     }
@@ -203,7 +205,7 @@ function formatPathValue(pathValue: AbstractPathValue<unknown>, context: FusionP
   switch (ctorName) {
     case "StringValue":
     case "CharValue":
-      return quoteString(String(pathValue.value ?? ""))
+      return quoteString(String(pathValue.value ?? ""), context)
     case "IntValue":
     case "FloatValue":
     case "SimpleValue":
@@ -349,8 +351,14 @@ function getNodePosition(node: unknown): { begin: number; end: number } | undefi
   return undefined
 }
 
-function quoteString(value: string): string {
-  return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`
+function quoteString(value: string, context: FusionPrinterContext): string {
+  const escaped = value.replace(/\\/g, "\\\\")
+
+  if (context.useSingleQuote) {
+    return `'${escaped.replace(/'/g, "\\'")}'`
+  }
+
+  return `"${escaped.replace(/"/g, '\\"')}"`
 }
 
 function isFusionFile(node: unknown): node is FusionFile {
@@ -383,4 +391,17 @@ function isValueCopy(operation: AbstractOperation): operation is ValueCopy {
 
 function isValueUnset(operation: AbstractOperation): operation is ValueUnset {
   return operation.constructor?.name === "ValueUnset"
+}
+
+function hasNonEmptyBlock(statement: unknown): boolean {
+  if (!isObjectStatement(statement)) {
+    return false
+  }
+
+  const block = statement.block
+  if (!block) {
+    return false
+  }
+
+  return (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
 }

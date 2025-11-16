@@ -10,9 +10,16 @@ build:
 test: build
     vitest run --reporter=verbose
 
+# Update Vitest snapshots
+update-snapshots: build
+    vitest --update --reporter=verbose
+
 # Format fixtures directory with plugin
 format-fixtures: build
     prettier --plugin=dist/index.js --write ./fixtures
+
+# Format fixtures and refresh snapshots
+refresh-fixtures: format-fixtures update-snapshots
 
 # Format REPL files (check only)
 # format-repl: build

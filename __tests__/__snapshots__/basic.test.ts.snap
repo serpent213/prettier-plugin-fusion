@@ -6,13 +6,13 @@ exports[`Fusion > Card 1`] = `
   // Read more about this in the README.md
   @styleguide {
     props {
-      uri = 'https://example.com'
-      title = 'Card title'
-      content = 'Some quick example text to build on the card title and make up the bulk of the card\\'s content.'
-      date = ''
-      authorName = ''
-      imageUri = ''
-      class = ''
+      uri = "https://example.com"
+      title = "Card title"
+      content = "Some quick example text to build on the card title and make up the bulk of the card's content."
+      date = ""
+      authorName = ""
+      imageUri = ""
+      class = ""
     }
   }
 
@@ -65,11 +65,11 @@ exports[`Fusion > Card 1`] = `
 exports[`Fusion > Comments 1`] = `
 "prototype(Vendor.Site:Blog.CardList) < prototype(Neos.Fusion:Component) {
   # Photo article
-  photoArticle = 'photo'
+  photoArticle = "photo"
 
   // Link article - show link info
   linkArticle {
-    renderer = 'link'
+    renderer = "link"
   }
 
   /* Circular mode (default) - use traditional properties */
@@ -89,7 +89,7 @@ exports[`Fusion > Comments 1`] = `
 
 exports[`Fusion > IncludesAndCopies 1`] = `
 "prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
-  @cache.mode = 'uncached'
+  @cache.mode = "uncached"
 
   renderer = Neos.Fusion:Case {
     primary {
@@ -102,21 +102,24 @@ exports[`Fusion > IncludesAndCopies 1`] = `
         </div>
       \`
     }
+
     fallback {
       renderer < Neos.Fusion:Component
     }
   }
+
   @process.trim = Neos.Fusion:Trim {
     value = \${String.trim(value)}
   }
+
   @process.uppercase = Vendor.Site:Process.Uppercase {
   }
 }
 
 Vendor.Site:Data.Feed {
-  @cache.entryIdentifier = 'feed-cache'
+  @cache.entryIdentifier = "feed-cache"
   @apply.props = \${props}
-  headline = 'Latest News'
+  headline = "Latest News"
   items < prototype(Vendor.Site:Data.ItemCollection)
   teaserVariant >
 }
@@ -129,13 +132,13 @@ exports[`Fusion > Registration 1`] = `
 #
 prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent) {
   renderer = Neos.Fusion.Form:Runtime.RuntimeForm {
-    namespace = 'neos-demo-registration'
+    namespace = "neos-demo-registration"
     attributes {
       id = \${'form-' + node.aggregateId}
       action = \${'#' + this.id}
     }
 
-    form.method = 'POST'
+    form.method = "POST"
 
     process {
       content = afx\`
@@ -158,7 +161,7 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
 
     action {
       createBackendUser {
-        type = 'Neos.Demo.Form.Runtime:CreateUser'
+        type = "Neos.Demo.Form.Runtime:CreateUser"
         options {
           username = \${data.username}
           password = \${data.password}
@@ -167,21 +170,24 @@ prototype(Neos.Demo:Content.Registration) < prototype(Neos.Neos:ContentComponent
           // this is basically for security reasons if someone
           // forgets to remove this functionality
           // you can configure a valid DateTime constructor format here
-          expiry = '+1 week'
+          expiry = "+1 week"
         }
-        @position = 'start'
+
+        @position = "start"
       }
+
       redirect {
-        type = 'Neos.Fusion.Form.Runtime:Redirect'
+        type = "Neos.Fusion.Form.Runtime:Redirect"
         options.uri = Neos.Fusion:UriBuilder {
-          package = 'Neos.Neos'
-          controller = 'Login'
-          action = 'index'
+          package = "Neos.Neos"
+          controller = "Login"
+          action = "index"
           additionalParams {
             username = \${data.username}
           }
         }
-        @position = 'end'
+
+        @position = "end"
       }
     }
   }
@@ -200,10 +206,10 @@ exports[`Fusion > Slider 1`] = `
     \`
   }
 
-  tagName = 'section'
+  tagName = "section"
   sliderIsDecoration = false
   class = null
-  slideItemClass = 'flex flex-col items-center justify-center'
+  slideItemClass = "flex flex-col items-center justify-center"
 
   options = Neos.Fusion:DataStructure {
     # The gap between slides. The CSS format is acceptable, such as 1em.
@@ -224,13 +230,14 @@ exports[`Fusion > Slider 1`] = `
   renderer = Neos.Fusion:Tag {
     tagName = \${props.tagName}
     attributes {
-      x-data = 'slider'
+      x-data = "slider"
       data-splide = \${Json.stringify(Array.concat({i18n:props.i18n}, props.options))}
       aria-label = \${props.label}
       role = \${props.sliderIsDecoration ? 'group' : null}
       class = \${Array.push('splide', props.class)}
       @apply.attributes = \${props.attributes}
     }
+
     content = afx\`
       <div class="splide__track">
           <ul class="splide__list" @if={props._hasItems && !props.content}>
@@ -253,18 +260,20 @@ exports[`Fusion > TextWithImage 1`] = `
 #
 prototype(Neos.Demo:Content.TextWithImage) < prototype(Neos.Neos:ContentComponent) {
   text = Neos.Neos:Editable {
-    property = 'text'
+    property = "text"
   }
+
   src = Neos.Neos:ImageUri {
     @if.hasAsset = \${this.asset}
     asset = \${q(node).property('image')}
     maximumWidth = 500
   }
+
   alt = \${q(node).property('alternativeText')}
   title = \${q(node).property('title')}
   hasCaption = \${q(node).property('hasCaption')}
   caption = Neos.Neos:Editable {
-    property = 'caption'
+    property = "caption"
   }
 
   renderDummyImage = \${renderingMode.isEdit || renderingMode.isPreview}

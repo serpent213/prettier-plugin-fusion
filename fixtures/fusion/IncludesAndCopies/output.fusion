@@ -1,5 +1,5 @@
 prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
-  @cache.mode = 'uncached'
+  @cache.mode = "uncached"
 
   renderer = Neos.Fusion:Case {
     primary {
@@ -12,21 +12,24 @@ prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
         </div>
       `
     }
+
     fallback {
       renderer < Neos.Fusion:Component
     }
   }
+
   @process.trim = Neos.Fusion:Trim {
     value = ${String.trim(value)}
   }
+
   @process.uppercase = Vendor.Site:Process.Uppercase {
   }
 }
 
 Vendor.Site:Data.Feed {
-  @cache.entryIdentifier = 'feed-cache'
+  @cache.entryIdentifier = "feed-cache"
   @apply.props = ${props}
-  headline = 'Latest News'
+  headline = "Latest News"
   items < prototype(Vendor.Site:Data.ItemCollection)
   teaserVariant >
 }
