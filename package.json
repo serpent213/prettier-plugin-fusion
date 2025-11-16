@@ -18,9 +18,9 @@
   "scripts": {
     "build:lib": "rollup --config=rollup.config.ts --configPlugin=@rollup/plugin-typescript",
     "test:lib": "pnpm build:lib && vitest run --reporter=verbose",
-    "write": "pnpm build:lib && prettier --write ./fixtures",
-    "repl": "pnpm build:lib && prettier --plugin=dist/index.js *.repl.js --ignore-path=.prettierignore",
-    "repl:write": "pnpm build:lib && prettier --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore",
+    "write": "pnpm build:lib && prettier --config=prettier.config.js --ignore-path=.prettierignore --plugin=dist/index.js --write ./fixtures",
+    "repl": "pnpm build:lib && prettier --config=prettier.config.js --plugin=dist/index.js *.repl.js --ignore-path=.prettierignore",
+    "repl:write": "pnpm build:lib && prettier --config=prettier.config.js --plugin=dist/index.js --write *.repl.js --ignore-path=.prettierignore",
     "prepack": "pnpm build:lib"
   },
   "dependencies": {

@@ -1,0 +1,21 @@
+prototype(Vendor.Site:Blog.CardList) < prototype(Neos.Fusion:Component) {
+    # Photo article
+    photoArticle = 'photo'
+
+    // Link article - show link info
+    linkArticle {
+        renderer = 'link'
+    }
+
+    /* Circular mode (default) - use traditional properties */
+    circular {
+        condition = true
+    }
+
+    renderer = afx`
+                <!-- Template hint -->
+        <div>
+            {props.title}
+        </div>
+    `
+}

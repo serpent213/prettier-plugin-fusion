@@ -63,23 +63,43 @@ function printStatementList(list: StatementList | undefined, context: FusionPrin
     return ""
   }
 
+  const items = [...(list.statements ?? []), ...(list.comments ?? [])]
+    .map((node, index) => ({ node, index }))
+    .sort((a, b) => {
+      const aPos = getNodePosition(a.node)
+      const bPos = getNodePosition(b.node)
+
+      if (!aPos && !bPos) {
+        return a.index - b.index
+      }
+
+      if (!aPos) {
+        return 1
+      }
+
+      if (!bPos) {
+        return -1
+      }
+
+      if (aPos.begin === bPos.begin) {
+        return a.index - b.index
+      }
+
+      return aPos.begin - bPos.begin
+    })
+
   const parts: Doc[] = []
-  const comments = list.comments ?? []
 
-  if (comments.length > 0) {
-    parts.push(printComments(comments))
-    if (list.statements.length > 0) {
+  for (let i = 0; i < items.length; i += 1) {
+    const current = items[i].node
+    const next = items[i + 1]?.node
+    const doc = isCommentNode(current) ? printComments([current]) : printStatement(current, context)
+
+    parts.push(doc)
+
+    if (next) {
       parts.push(hardline)
-    }
-  }
-
-  for (let i = 0; i < list.statements.length; i += 1) {
-    const statement = list.statements[i]
-    parts.push(printStatement(statement, context))
-
-    if (i < list.statements.length - 1) {
-      parts.push(hardline)
-      if (hasOriginalBlankLine(statement, list.statements[i + 1], context)) {
+      if (hasOriginalBlankLine(current, next, context)) {
         parts.push(hardline)
       }
     }
@@ -135,7 +155,7 @@ function printOperation(operation: AbstractOperation, context: FusionPrinterCont
   }
 
   if (isValueUnset(operation)) {
-    return " = ~"
+    return " >"
   }
 
   return ""
@@ -146,7 +166,7 @@ function printBlock(block: Block, context: FusionPrinterContext): Doc {
     (block.statementList?.statements?.length ?? 0) > 0 || (block.statementList?.comments?.length ?? 0) > 0
 
   if (!hasContent) {
-    return "{}"
+    return group(concat(["{", hardline, "}"]))
   }
 
   const inner = printStatementList(block.statementList, context)
@@ -279,19 +299,25 @@ function printComments(comments: Comment[]): Doc {
 }
 
 function hasOriginalBlankLine(prev: unknown, next: unknown, context: FusionPrinterContext): boolean {
-  if (!context.sourceText) {
+  if (!context.sourceText || !next) {
     return false
   }
 
-  const prevPosition = getNodePosition(prev)
   const nextPosition = getNodePosition(next)
-
-  if (!prevPosition || !nextPosition) {
+  if (!nextPosition) {
     return false
   }
 
-  const between = context.sourceText.slice(prevPosition.end, nextPosition.begin)
-  return /\n\s*\n/.test(between)
+  const source = context.sourceText
+  let cursor = nextPosition.begin - 1
+
+  while (cursor >= 0 && /\s/.test(source[cursor])) {
+    cursor -= 1
+  }
+
+  const whitespaceBeforeNext = source.slice(cursor + 1, nextPosition.begin)
+  const newlineCount = (whitespaceBeforeNext.match(/\n/g) ?? []).length
+  return newlineCount >= 2
 }
 
 function getSourceForNode(node: unknown, context: FusionPrinterContext): string | undefined {
@@ -341,6 +367,10 @@ function isObjectStatement(node: unknown): node is ObjectStatement {
 
 function isIncludeStatement(node: unknown): node is { filePattern: string } {
   return Boolean(node && node.constructor && node.constructor.name === "IncludeStatement")
+}
+
+function isCommentNode(node: unknown): node is Comment {
+  return Boolean(node && node.constructor && node.constructor.name === "Comment")
 }
 
 function isValueAssignment(operation: AbstractOperation): operation is ValueAssignment {

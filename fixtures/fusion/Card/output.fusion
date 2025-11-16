@@ -19,7 +19,9 @@ prototype(Neos.Demo:Presentation.Cards.Card) < prototype(Neos.Fusion:Component) 
     content = null
     date = null
     authorName = null
+
     class = null
+
     renderer = afx`
         <div
             class={"block shadow-lg bg-white" + props.class}>

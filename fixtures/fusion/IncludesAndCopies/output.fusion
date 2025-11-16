@@ -1,5 +1,6 @@
 prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
     @cache.mode = 'uncached'
+
     renderer = Neos.Fusion:Case {
         primary {
             condition = ${q(node).is('[instanceof Vendor.Site:Document.Article]')}
@@ -15,7 +16,6 @@ prototype(Vendor.Site:Content.Teaser) < prototype(Neos.Neos:ContentComponent) {
             renderer < Neos.Fusion:Component
         }
     }
-
     @process.trim = Neos.Fusion:Trim {
         value = ${String.trim(value)}
     }
@@ -27,5 +27,5 @@ Vendor.Site:Data.Feed {
     @apply.props = ${props}
     headline = 'Latest News'
     items < prototype(Vendor.Site:Data.ItemCollection)
-    teaserVariant = ~
+    teaserVariant >
 }
