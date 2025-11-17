@@ -11,6 +11,8 @@ Neos Fusion VS Code extension) and can parse Fusion code, embedded AFX markup, 
 The printer mirrors the parser’s object model and emits Prettier docs, which means Fusion statements, nested blocks,
 embedded AFX templates, and inline Eel expressions are formatted consistently.
 
+[![Browser Playground](https://img.shields.io/badge/Browser_Playground-blue)](https://teralink.net/~self/fusionfmt/)
+
 ## Usage
 
 ```sh
@@ -50,7 +52,7 @@ options that mirror the `ts-fusion-parser` configuration:
 
 - **Fusion**: The plugin registers a `fusion` parser backed by `ts-fusion-parser`, which returns a strongly typed AST of statements, object paths, blocks, and comments. The printer in `src/printer/index.ts` walks that AST and rebuilds it following an algorithm.
 
-- **AFX/HTML**: When a DSL expression is marked as `afx`, the `embed` hook normalises leading/trailing whitespace, masks embedded Eel placeholders, and lets Prettier’s `html` parser format the inner markup. The result is restored and wrapped back into the ``afx`...` `` fence.
+- **AFX/HTML**: When a DSL expression is marked as `afx`, the `embed` hook normalises leading/trailing whitespace, masks embedded Eel placeholders, and lets Prettier’s `html` (`prettier/plugins/html`) parser format the inner markup. The result is restored and wrapped back into the ``afx`...` `` fence.
 
 - **Eel**: `${...}` is treated as a string value (that’s what `ts-fusion-parser` gives us). We keep the original text as the source of truth, normalise whitespace, split logical operators onto continuation lines when they spill past the print width, and break long function-call arguments heuristically. There is no dedicated Eel AST here, so formatting falls back to these best-effort string transforms rather than semantic reprinting.
 
